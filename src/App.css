@@ -1,0 +1,519 @@
+/*
+  NetSpark Sales Dashboard - Modern UI (2025)
+  - Brand-consistent, highly accessible, ultra-responsive
+  - Upgraded for dark/light mode, mobile, and screen readers
+  - Designed for INTERNAL SaaS (employee-first polish)
+*/
+
+/* 1. Google Fonts: Poppins for headings, Inter fallback */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+/*------------------------------------------------
+  1. Root Variables & Global Styles (Dark & Light)
+------------------------------------------------*/
+:root {
+  /* NetSpark Brand Colors */
+  --color-brand-orange: #ff6f32;
+  --color-brand-orange-dark: #e65e28;
+  --color-brand-blue: #21293c;
+  --color-brand-blue-light: #2570e6;
+  --color-brand-gray: #bbbbbb;
+
+  /* Core Palette - Dark Mode */
+  --color-bg: #0F1115;
+  --color-bg-gradient-end: #14171D;
+  --color-card: #1B1F28;
+  --color-accent: var(--color-brand-orange);
+  --color-accent-hover: var(--color-brand-orange-dark);
+  --color-text-primary: #fff;
+  --color-text-secondary: var(--color-brand-gray);
+
+  /* Card Shadows & Glass */
+  --shadow-color: rgba(0, 0, 0, 0.4);
+  --shadow-hover: rgba(0, 0, 0, 0.6);
+  --card-translucent: rgba(27, 31, 40, 0.8);
+
+  /* Tier Colors */
+  --gold: #FFD700;
+  --silver: #C0C0C0;
+  --bronze: #CD7F32;
+
+  /* Typography */
+  --font-family: 'Poppins', 'Inter', Arial, sans-serif;
+  --font-size-base: 1rem;
+  --font-size-header: 1.4rem;
+  --font-size-large: 2.3rem;
+
+  /* Layout & Spacing */
+  --border-radius: 14px;
+  --card-padding: 24px;
+  --card-gap: 24px;
+  --transition-speed: 0.28s;
+}
+
+:root[data-theme="light"] {
+  --color-bg: #fafbfc;
+  --color-bg-gradient-end: #e8e8e8;
+  --color-card: #fff;
+  --card-translucent: rgba(255, 255, 255, 0.92);
+  --color-text-primary: #111;
+  --color-text-secondary: #555;
+  --shadow-color: rgba(0,0,0,0.11);
+  --shadow-hover: rgba(0,0,0,0.18);
+}
+
+/* Base, HTML & Body */
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  min-height: 100vh;
+}
+body {
+  background: radial-gradient(circle at top left,
+    var(--color-bg) 0%,
+    var(--color-bg-gradient-end) 100%);
+  overflow-x: hidden;
+}
+
+/* Accessibility: Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/*------------------------------------------------
+  2. App Container & Responsive
+------------------------------------------------*/
+.App {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 24px;
+}
+@media (max-width: 900px) {
+  .App { padding: 12px; }
+  .card-row { flex-direction: column; gap: 12px; }
+}
+@media (max-width: 500px) {
+  h2 { font-size: 1.18rem; }
+  .metric-value { font-size: 1.35rem; }
+}
+
+/*------------------------------------------------
+  3. Header & Top Bar (Sticky, Brand, Focus)
+------------------------------------------------*/
+.App-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card-translucent);
+  border-radius: var(--border-radius);
+  padding: 16px 24px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 16px var(--shadow-color);
+  transition: box-shadow var(--transition-speed) ease,
+              transform var(--transition-speed) ease;
+  position: sticky;
+  top: 0; /* Sticks on scroll for desktop */
+  z-index: 100;
+}
+.App-header:hover, .App-header:focus-within {
+  box-shadow: 0 6px 22px var(--shadow-hover);
+  transform: translateY(-2px);
+}
+.App-header img {
+  height: 48px;
+  width: auto;
+  margin-right: 12px;
+}
+.App-header h1 {
+  font-size: var(--font-size-header);
+  color: var(--color-accent);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  outline: none;
+}
+.last-updated {
+  font-size: 0.97rem;
+  color: var(--color-text-secondary);
+  margin: 4px 0 0 0;
+}
+
+/*------------------------------------------------
+  4. Buttons (Keyboard, Contrast, Accessibility)
+------------------------------------------------*/
+.refresh-btn {
+  background: var(--color-accent);
+  color: #fff !important;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 9px;
+  font-size: 1rem;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  transition: background var(--transition-speed) ease,
+              transform var(--transition-speed) ease,
+              box-shadow var(--transition-speed) ease;
+  margin-right: 8px;
+  outline: 2px solid transparent;
+}
+.refresh-btn:last-child { margin-right: 0; }
+.refresh-btn:hover,
+.refresh-btn:focus {
+  background: var(--color-accent-hover);
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 3px 12px var(--shadow-color);
+  outline: 2px solid var(--color-brand-blue-light);
+}
+.refresh-btn:active { transform: translateY(0) scale(0.99); }
+.refresh-btn:focus-visible { outline: 2px solid var(--color-brand-blue-light); }
+.refresh-btn[aria-current="page"] {
+  background: var(--color-brand-blue-light);
+  color: #fff;
+}
+
+/*------------------------------------------------
+  5. Dashboard Layout & Card
+------------------------------------------------*/
+.dashboard-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+}
+.card-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--card-gap);
+}
+.card {
+  background: var(--card-translucent);
+  backdrop-filter: blur(8px);
+  border-radius: var(--border-radius);
+  padding: var(--card-padding);
+  box-shadow: 0 4px 12px var(--shadow-color);
+  transition: box-shadow var(--transition-speed) ease,
+              transform var(--transition-speed) ease;
+}
+.card:hover, .card:focus-within {
+  box-shadow: 0 7px 18px var(--shadow-hover);
+  transform: translateY(-2px) scale(1.01);
+}
+h2, h1 {
+  font-size: var(--font-size-header);
+  color: var(--color-accent);
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  outline: none;
+}
+.icon {
+  width: 22px;
+  height: 22px;
+  color: var(--color-accent);
+  transition: transform var(--transition-speed) ease;
+}
+.icon:hover { transform: scale(1.1); }
+
+/*------------------------------------------------
+  6. Metric Cards (Brand Shadow, Animation)
+------------------------------------------------*/
+.metric-card { text-align: center; }
+.metric-value {
+  font-size: var(--font-size-large);
+  font-weight: 700;
+  margin-top: 12px;
+  letter-spacing: 0.01em;
+}
+
+/*------------------------------------------------
+  7. Chart Card & Recharts
+------------------------------------------------*/
+.chart-card { padding: 18px; }
+.recharts-wrapper { margin: 0 auto; }
+.recharts-text {
+  fill: var(--color-text-primary) !important;
+  font-size: 0.99rem !important;
+}
+.recharts-bar-rectangles .recharts-bar-rectangle {
+  transition: fill var(--transition-speed) ease,
+              transform var(--transition-speed) ease;
+}
+.recharts-bar-rectangles .recharts-bar-rectangle:hover {
+  fill: #ff8a5c;
+  transform: scale(1.04);
+}
+
+/*------------------------------------------------
+  8. Leaderboard
+------------------------------------------------*/
+.leaderboard ul { list-style: none; padding: 0; margin: 0; }
+.leaderboard li {
+  background: rgba(255, 111, 50, 0.13);
+  padding: 12px 15px;
+  margin: 8px 0;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  transition: background var(--transition-speed) ease,
+              transform var(--transition-speed) ease,
+              box-shadow var(--transition-speed) ease;
+}
+.leaderboard li:hover, .leaderboard li:focus {
+  background: rgba(255, 111, 50, 0.25);
+  transform: translateX(2px);
+  box-shadow: 0 4px 12px var(--shadow-color);
+  outline: 2px solid var(--color-accent-hover);
+}
+.leaderboard li strong,
+.leaderboard li span { font-weight: 500; }
+.leaderboard li.gold, .leaderboard li.silver, .leaderboard li.bronze {
+  animation: highlight 1.2s ease-in-out infinite alternate;
+}
+.leaderboard li.gold { background: rgba(255, 215, 0, 0.21) !important; font-weight: 700; }
+.leaderboard li.silver { background: rgba(192, 192, 192, 0.17) !important; font-weight: 700; }
+.leaderboard li.bronze { background: rgba(205, 127, 50, 0.16) !important; font-weight: 700; }
+@keyframes highlight {
+  0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.21); }
+  100% {
+    box-shadow:
+      0 0 12px 4px rgba(255, 215, 0, 0.16),
+      0 0 16px 7px rgba(192, 192, 192, 0.14),
+      0 0 12px 5px rgba(205, 127, 50, 0.12);
+  }
+}
+
+/*------------------------------------------------
+  9. Tables & Scrolling
+------------------------------------------------*/
+.table-container {
+  max-height: 480px;
+  overflow-y: auto;
+  border-radius: 6px;
+  margin-top: 10px;
+  background: transparent;
+}
+.table-container table { width: 100%; border-collapse: collapse; }
+.table-container th,
+.table-container td {
+  padding: 9px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.13);
+  font-size: 0.97rem;
+  white-space: nowrap;
+}
+.table-container th {
+  background: rgba(255, 255, 255, 0.09);
+  font-weight: 600;
+}
+.table-container tr:nth-child(even) { background: rgba(255, 255, 255, 0.04); }
+.table-container tr:hover, .table-container tr:focus {
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateX(2px);
+  outline: 2px solid var(--color-accent-hover);
+}
+.sales-total {
+  padding: 10px 15px;
+  background: rgba(255, 111, 50, 0.14);
+  margin-bottom: 10px;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* Rolling 3 Months mini-cards */
+.rolling-months .month-card {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.rolling-months .month-card h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.1rem;
+  color: var(--color-accent);
+}
+.rolling-months .rolling-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.rolling-months .rolling-table th,
+.rolling-months .rolling-table td {
+  padding: 10px 15px;
+  text-align: right;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+.rolling-months .rolling-table th:first-child,
+.rolling-months .rolling-table td:first-child {
+  text-align: left;
+}
+.rolling-months .rolling-table thead th {
+  background: rgba(255, 255, 255, 0.11);
+  font-weight: 600;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+.pagination button {
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 7px;
+  font-size: 0.98rem;
+  cursor: pointer;
+  transition: background var(--transition-speed) ease;
+}
+.pagination button:hover,
+.pagination button:focus {
+  background: var(--color-accent-hover);
+  outline: none;
+}
+.pagination button:disabled {
+  background: #bbb;
+  cursor: not-allowed;
+}
+
+/*------------------------------------------------
+  10. Loader, Error, No Data (Polished & Animated)
+------------------------------------------------*/
+.loader,
+.error,
+.no-data {
+  font-size: 1.03rem;
+  padding: 14px 24px;
+  border-radius: 8px;
+  margin: 24px auto;
+  width: fit-content;
+  text-align: center;
+  animation: fadeIn var(--transition-speed) ease-in-out;
+  box-shadow: 0 2px 12px var(--shadow-color);
+}
+.loader { background: rgba(255, 255, 255, 0.13); color: var(--color-accent); }
+.error { background: rgba(255, 66, 66, 0.18); color: #ff6666; }
+.no-data { background: rgba(255, 255, 255, 0.15); }
+
+/* Update Notification */
+.update-notification {
+  text-align: center;
+  padding: 10px;
+  background: rgba(255, 111, 50, 0.22);
+  font-size: 0.96rem;
+  border-radius: 8px;
+  margin-top: 18px;
+  animation: slideDown var(--transition-speed) ease-in-out;
+  color: var(--color-brand-blue);
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeIn var(--transition-speed) ease-in-out; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(22px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/*------------------------------------------------
+  11. Toast Notifications (for real-time shout-outs)
+------------------------------------------------*/
+.toast-container {
+  position: fixed;
+  top: 74px;
+  right: 22px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.toast {
+  background: rgba(255, 255, 255, 0.97);
+  color: #000;
+  padding: 11px 18px;
+  border-radius: 9px;
+  animation: fadeInDown 0.4s ease forwards;
+  box-shadow: 0 2px 12px rgba(255,111,50,0.10);
+}
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/*------------------------------------------------
+  12. Login Gate (Modal)
+------------------------------------------------*/
+.login-gate {
+  position: fixed;
+  inset: 0;
+  background: var(--color-bg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+.login-card {
+  background: var(--card-translucent);
+  backdrop-filter: blur(14px);
+  padding: 36px;
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 18px var(--shadow-color);
+  max-width: 330px;
+  width: 100%;
+  text-align: center;
+}
+.login-card h2 { margin-bottom: 22px; }
+.login-card .form-group { margin-bottom: 16px; text-align: left; }
+.login-card .form-group label {
+  display: block;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
+}
+.login-card .form-group input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 7px;
+  border: 1px solid #666;
+  background: #232323;
+  color: #fff;
+  font-size: 1rem;
+}
+.login-card .refresh-btn { margin-top: 12px; }
+
+/*------------------------------------------------
+  13. Modal for Drill-Down
+------------------------------------------------*/
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: fadeIn 0.5s ease;
+}
+.modal-content {
+  background: rgba(27, 31, 40, 0.97);
+  backdrop-filter: blur(13px);
+  padding: 24px;
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.38);
+  max-width: 620px;
+  width: 100%;
+}
+.modal-content h2 { margin-top: 0; margin-bottom: 18px; }
+.modal-content button { margin-top: 18px; }
