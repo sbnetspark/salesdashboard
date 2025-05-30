@@ -78,7 +78,7 @@ function MTDCard({ salesData }) {
 
 // ---- 2) MonthlyStackedBar ----
 function MonthlyStackedBar({ salesData }) {
-  const monthlyAgg = useMemo(() => {
+  const monthlyArray = useMemo(() => {
     const agg = {};
     salesData.forEach((sale) => {
       const { Month, MRC, Type } = sale;
@@ -90,43 +90,38 @@ function MonthlyStackedBar({ salesData }) {
         agg[Month].mobility += MRC || 0;
       }
     });
-    return agg;
+    return Object.entries(agg)
+      .map(([month, vals]) => ({
+        month,
+        wireline: vals.wireline,
+        mobility: vals.mobility,
+      }))
+      .filter((item) => item.month && item.month.includes(" "))
+      .sort((a, b) => {
+        const [mA, yA] = a.month.split(" ");
+        const [mB, yB] = b.month.split(" ");
+        const yearDiff = parseInt(yA, 10) - parseInt(yB, 10);
+        if (yearDiff !== 0) return yearDiff;
+        return MONTH_ORDER.indexOf(mA) - MONTH_ORDER.indexOf(mB);
+      });
   }, [salesData]);
-  const monthlyArray = useMemo(
-    () =>
-      Object.entries(monthlyAgg)
-        .map(([month, vals]) => ({
-          month,
-          wireline: vals.wireline,
-          mobility: vals.mobility,
-        }))
-        .filter((item) => item.month && item.month.includes(" "))
-        .sort((a, b) => {
-          const [mA, yA] = a.month.split(" ");
-          const [mB, yB] = b.month.split(" ");
-          const yearDiff = parseInt(yA, 10) - parseInt(yB, 10);
-          if (yearDiff !== 0) return yearDiff;
-          return MONTH_ORDER.indexOf(mA) - MONTH_ORDER.indexOf(mB);
-        }),
-    [monthlyAgg]
-  );
+
   return (
     <div className="card chart-card" tabIndex={0} aria-label="Monthly Wireline vs. Mobility">
       <h2>
         <ChartBarIcon className="icon" /> Monthly Wireline vs. Mobility
       </h2>
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={280}>
         <BarChart data={monthlyArray}>
-          <XAxis dataKey="month" stroke="#fff" fontSize={14} />
-          <YAxis stroke="#fff" fontSize={14} />
+          <XAxis dataKey="month" stroke="#fff" fontSize={13} hide={window.innerWidth < 600} />
+          <YAxis stroke="#fff" fontSize={13} />
           <Tooltip
             formatter={formatCurrency}
             labelStyle={{ color: "#000" }}
             contentStyle={{
-              backgroundColor: "rgba(255, 255, 255, 0.9)",
+              backgroundColor: "rgba(255,255,255,0.92)",
               border: "1px solid #ff6f32",
-              borderRadius: "8px",
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+              borderRadius: "7px",
             }}
             itemStyle={{ color: "#000" }}
           />
@@ -188,48 +183,55 @@ function SellerCurrentMonthDetailed({ salesData }) {
     return () => window.removeEventListener("keydown", handler);
   }, [modalOpen]);
 
-  const rawSellers = useMemo(() => Object.values(
-    salesData.reduce((acc, sale) => {
-      if (sale.Month === currentMonthYear) {
-        const name = sale.Seller || "Unknown";
-        if (!acc[name]) {
-          acc[name] = { Seller: name, TotalMRC: 0, Wireline: 0, Wireless: 0 };
+  // --- ALL filtering and sorting inside useMemo ---
+  const filteredSellers = useMemo(() => {
+    let sellers = Object.values(
+      salesData.reduce((acc, sale) => {
+        if (sale.Month === currentMonthYear) {
+          const name = sale.Seller || "Unknown";
+          if (!acc[name]) {
+            acc[name] = { Seller: name, TotalMRC: 0, Wireline: 0, Wireless: 0 };
+          }
+          acc[name].TotalMRC += sale.MRC || 0;
+          if (sale.Type?.toLowerCase().includes("wireline")) {
+            acc[name].Wireline += sale.MRC || 0;
+          } else {
+            acc[name].Wireless += sale.MRC || 0;
+          }
         }
-        acc[name].TotalMRC += sale.MRC || 0;
-        if (sale.Type?.toLowerCase().includes("wireline")) {
-          acc[name].Wireline += sale.MRC || 0;
-        } else {
-          acc[name].Wireless += sale.MRC || 0;
-        }
-      }
-      return acc;
-    }, {})
-  ), [salesData, currentMonthYear]);
+        return acc;
+      }, {})
+    );
 
-  let filteredSellers = useMemo(() =>
-    rawSellers.filter((s) =>
+    // Filter
+    sellers = sellers.filter((s) =>
       s.Seller.toLowerCase().includes(sellerFilter.toLowerCase())
-    ),
-    [rawSellers, sellerFilter]
-  );
+    );
 
-  if (sortBy === "wireline") {
-    filteredSellers.sort((a, b) => b.Wireline - a.Wireline);
-  } else if (sortBy === "wireless") {
-    filteredSellers.sort((a, b) => b.Wireless - a.Wireless);
-  } else if (sortBy === "seller") {
-    filteredSellers.sort((a, b) => a.Seller.localeCompare(b.Seller));
-  } else {
-    filteredSellers.sort((a, b) => b.TotalMRC - a.TotalMRC);
-  }
+    // Sort
+    if (sortBy === "wireline") {
+      sellers = [...sellers].sort((a, b) => b.Wireline - a.Wireline);
+    } else if (sortBy === "wireless") {
+      sellers = [...sellers].sort((a, b) => b.Wireless - a.Wireless);
+    } else if (sortBy === "seller") {
+      sellers = [...sellers].sort((a, b) => a.Seller.localeCompare(b.Seller));
+    } else {
+      sellers = [...sellers].sort((a, b) => b.TotalMRC - a.TotalMRC);
+    }
+    return sellers;
+  }, [salesData, currentMonthYear, sellerFilter, sortBy]);
 
-  const totals = filteredSellers.reduce(
-    (acc, s) => ({
-      TotalMRC: acc.TotalMRC + s.TotalMRC,
-      Wireline: acc.Wireline + s.Wireline,
-      Wireless: acc.Wireless + s.Wireless,
-    }),
-    { TotalMRC: 0, Wireline: 0, Wireless: 0 }
+  const totals = useMemo(
+    () =>
+      filteredSellers.reduce(
+        (acc, s) => ({
+          TotalMRC: acc.TotalMRC + s.TotalMRC,
+          Wireline: acc.Wireline + s.Wireline,
+          Wireless: acc.Wireless + s.Wireless,
+        }),
+        { TotalMRC: 0, Wireline: 0, Wireless: 0 }
+      ),
+    [filteredSellers]
   );
 
   const handleSellerClick = (sellerName) => {
@@ -251,7 +253,7 @@ function SellerCurrentMonthDetailed({ salesData }) {
       <h2>
         <ChartBarIcon className="icon" /> Current Month Sales ({currentMonthYear})
       </h2>
-      <div className="controls" style={{ marginBottom: "10px" }}>
+      <div className="controls" style={{ marginBottom: "10px", flexWrap: "wrap" }}>
         <div className="filters">
           <label htmlFor="filter-seller">Filter Seller:</label>
           <input
@@ -261,19 +263,21 @@ function SellerCurrentMonthDetailed({ salesData }) {
             onChange={(e) => setSellerFilter(e.target.value)}
             placeholder="Type seller name..."
             style={{
-              marginLeft: "6px",
-              padding: "6px",
+              marginLeft: "5px",
+              padding: "5px",
               borderRadius: "6px",
               border: "1px solid #999",
+              minWidth: 80,
             }}
           />
         </div>
-        <div className="sort">
+        <div className="sort" style={{ marginLeft: 10 }}>
           <label htmlFor="cm-sort">Sort By:</label>
           <select
             id="cm-sort"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
+            style={{ marginLeft: 5 }}
           >
             <option value="mrc">Total MRC (High to Low)</option>
             <option value="wireline">Wireline (High to Low)</option>
@@ -375,6 +379,55 @@ function Rolling3Months({ salesData }) {
   const [sellerFilter, setSellerFilter] = useState("");
   const [sortBy, setSortBy] = useState("mrc");
 
+  // All filter/sort logic in a useMemo!
+  const monthCards = useMemo(() => {
+    return months.map((mStr) => {
+      const monthlySales = salesData.filter((s) => s.Month === mStr);
+      const agg = {};
+
+      monthlySales.forEach((s) => {
+        const name = s.Seller || "Unknown";
+        if (!agg[name]) agg[name] = { wireline: 0, wireless: 0 };
+        if (s.Type?.toLowerCase().includes("wireline")) {
+          agg[name].wireline += s.MRC || 0;
+        } else {
+          agg[name].wireless += s.MRC || 0;
+        }
+      });
+
+      let resultArray = Object.entries(agg).map(([seller, obj]) => ({
+        seller,
+        wireline: obj.wireline,
+        wireless: obj.wireless,
+        total: obj.wireline + obj.wireless,
+      }));
+
+      // Filter by seller name
+      if (sellerFilter.trim() !== "") {
+        resultArray = resultArray.filter((r) =>
+          r.seller.toLowerCase().includes(sellerFilter.toLowerCase())
+        );
+      }
+
+      // Sort
+      if (sortBy === "wireline") {
+        resultArray.sort((a, b) => b.wireline - a.wireline);
+      } else if (sortBy === "wireless") {
+        resultArray.sort((a, b) => b.wireless - a.wireless);
+      } else if (sortBy === "seller") {
+        resultArray.sort((a, b) => a.seller.localeCompare(b.seller));
+      } else {
+        // "mrc"
+        resultArray.sort((a, b) => b.total - a.total);
+      }
+
+      return {
+        mStr,
+        resultArray,
+      };
+    });
+  }, [months, salesData, sellerFilter, sortBy]);
+
   return (
     <div className="card rolling-months fade-in">
       <h2>
@@ -384,7 +437,7 @@ function Rolling3Months({ salesData }) {
         Aggregated by seller (Wireline + Wireless)
       </p>
 
-      <div className="controls" style={{ marginBottom: "12px" }}>
+      <div className="controls" style={{ marginBottom: "12px", flexWrap: "wrap" }}>
         <div className="filters">
           <label>Filter Seller:</label>
           <input
@@ -393,19 +446,21 @@ function Rolling3Months({ salesData }) {
             onChange={(e) => setSellerFilter(e.target.value)}
             placeholder="Type seller name..."
             style={{
-              marginLeft: "6px",
-              padding: "6px",
+              marginLeft: "4px",
+              padding: "5px",
               borderRadius: "6px",
               border: "1px solid #999",
+              minWidth: 75,
             }}
           />
         </div>
-        <div className="sort">
+        <div className="sort" style={{ marginLeft: 10 }}>
           <label htmlFor="r3-sort">Sort By:</label>
           <select
             id="r3-sort"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
+            style={{ marginLeft: 4 }}
           >
             <option value="mrc">Total MRC (High to Low)</option>
             <option value="wireline">Wireline (High to Low)</option>
@@ -415,78 +470,40 @@ function Rolling3Months({ salesData }) {
         </div>
       </div>
 
-      {months.map((mStr) => {
-        const monthlySales = salesData.filter((s) => s.Month === mStr);
-        const agg = {};
-
-        monthlySales.forEach((s) => {
-          const name = s.Seller || "Unknown";
-          if (!agg[name]) agg[name] = { wireline: 0, wireless: 0 };
-          if (s.Type?.toLowerCase().includes("wireline")) {
-            agg[name].wireline += s.MRC || 0;
-          } else {
-            agg[name].wireless += s.MRC || 0;
-          }
-        });
-
-        let resultArray = Object.entries(agg).map(([seller, obj]) => ({
-          seller,
-          wireline: obj.wireline,
-          wireless: obj.wireless,
-          total: obj.wireline + obj.wireless,
-        }));
-
-        if (sellerFilter.trim() !== "") {
-          resultArray = resultArray.filter((r) =>
-            r.seller.toLowerCase().includes(sellerFilter.toLowerCase())
-          );
-        }
-
-        if (sortBy === "wireline") {
-          resultArray.sort((a, b) => b.wireline - a.wireline);
-        } else if (sortBy === "wireless") {
-          resultArray.sort((a, b) => b.wireless - a.wireless);
-        } else if (sortBy === "seller") {
-          resultArray.sort((a, b) => a.seller.localeCompare(b.seller));
-        } else {
-          resultArray.sort((a, b) => b.total - a.total);
-        }
-
-        return (
-          <div className="month-card" key={mStr}>
-            <h3>{mStr}</h3>
-            <div className="table-container">
-              <table className="rolling-table">
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: "left" }}>Seller</th>
-                    <th>Wireline</th>
-                    <th>Wireless</th>
-                    <th>Total</th>
+      {monthCards.map(({ mStr, resultArray }) => (
+        <div className="month-card" key={mStr}>
+          <h3>{mStr}</h3>
+          <div className="table-container">
+            <table className="rolling-table">
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left" }}>Seller</th>
+                  <th>Wireline</th>
+                  <th>Wireless</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resultArray.map((row, idx) => (
+                  <tr key={row.seller + idx}>
+                    <td style={{ textAlign: "left" }}>{row.seller}</td>
+                    <td>{formatCurrency(row.wireline)}</td>
+                    <td>{formatCurrency(row.wireless)}</td>
+                    <td>{formatCurrency(row.total)}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {resultArray.map((row, idx) => (
-                    <tr key={row.seller + idx}>
-                      <td style={{ textAlign: "left" }}>{row.seller}</td>
-                      <td>{formatCurrency(row.wireline)}</td>
-                      <td>{formatCurrency(row.wireless)}</td>
-                      <td>{formatCurrency(row.total)}</td>
-                    </tr>
-                  ))}
-                  {resultArray.length === 0 && (
-                    <tr>
-                      <td colSpan="4" style={{ textAlign: "center", fontStyle: "italic" }}>
-                        No sellers match filter.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                ))}
+                {resultArray.length === 0 && (
+                  <tr>
+                    <td colSpan="4" style={{ textAlign: "center", fontStyle: "italic" }}>
+                      No sellers match filter.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-        );
-      })}
+        </div>
+      ))}
     </div>
   );
 }
@@ -505,7 +522,7 @@ function IndividualSalesList({ sales }) {
     (s) => s.Month && s.Month.includes(" ")
   );
 
-  const uniqueMonths = [...new Set(validSales.map((s) => s.Month))].sort(
+  const uniqueMonths = useMemo(() => [...new Set(validSales.map((s) => s.Month))].sort(
     (a, b) => {
       const [ma, ya] = a.split(" ");
       const [mb, yb] = b.split(" ");
@@ -513,23 +530,25 @@ function IndividualSalesList({ sales }) {
       if (yearDiff !== 0) return yearDiff;
       return MONTH_ORDER.indexOf(ma) - MONTH_ORDER.indexOf(mb);
     }
-  );
-  const uniqueSellers = [...new Set(validSales.map((s) => s.Seller))].sort();
-  const uniqueTypes = [...new Set(validSales.map((s) => s.Type))].sort();
+  ), [validSales]);
+  const uniqueSellers = useMemo(() => [...new Set(validSales.map((s) => s.Seller))].sort(), [validSales]);
+  const uniqueTypes = useMemo(() => [...new Set(validSales.map((s) => s.Type))].sort(), [validSales]);
 
-  const filteredSales = validSales.filter((sale) => {
-    if (filters.month && sale.Month !== filters.month) return false;
-    if (filters.seller && sale.Seller !== filters.seller) return false;
-    if (filters.type && sale.Type !== filters.type) return false;
-    return true;
-  });
-
-  const totalFilteredSales = filteredSales.reduce(
-    (sum, sale) => sum + (sale.MRC || 0),
-    0
+  const filteredSales = useMemo(() =>
+    validSales.filter((sale) => {
+      if (filters.month && sale.Month !== filters.month) return false;
+      if (filters.seller && sale.Seller !== filters.seller) return false;
+      if (filters.type && sale.Type !== filters.type) return false;
+      return true;
+    }), [filters, validSales]
   );
 
-  const sortedSales = [...filteredSales].sort((a, b) => {
+  const totalFilteredSales = useMemo(
+    () => filteredSales.reduce((sum, sale) => sum + (sale.MRC || 0), 0),
+    [filteredSales]
+  );
+
+  const sortedSales = useMemo(() => {
     function wirelineValue(obj) {
       return obj.Type?.toLowerCase().includes("wireline") ? (obj.MRC || 0) : 0;
     }
@@ -540,22 +559,25 @@ function IndividualSalesList({ sales }) {
         : 0;
     }
 
+    const arr = [...filteredSales];
     if (sortBy === "wireline") {
-      return wirelineValue(b) - wirelineValue(a);
+      arr.sort((a, b) => wirelineValue(b) - wirelineValue(a));
     } else if (sortBy === "wireless") {
-      return wirelessValue(b) - wirelessValue(a);
+      arr.sort((a, b) => wirelessValue(b) - wirelessValue(a));
     } else if (sortBy === "mrc") {
-      return (b.MRC || 0) - (a.MRC || 0);
+      arr.sort((a, b) => (b.MRC || 0) - (a.MRC || 0));
     } else if (sortBy === "seller") {
-      return a.Seller.localeCompare(b.Seller);
+      arr.sort((a, b) => a.Seller.localeCompare(b.Seller));
     } else {
+      // default "month"
       const [mA, yA] = a.Month.split(" ");
       const [mB, yB] = b.Month.split(" ");
       const yearDiff = parseInt(yA, 10) - parseInt(yB, 10);
       if (yearDiff !== 0) return yearDiff;
       return MONTH_ORDER.indexOf(mA) - MONTH_ORDER.indexOf(mB);
     }
-  });
+    return arr;
+  }, [filteredSales, sortBy]);
 
   const paginatedSales = sortedSales.slice(
     page * rowsPerPage,
@@ -563,14 +585,16 @@ function IndividualSalesList({ sales }) {
   );
   const totalPages = Math.ceil(sortedSales.length / rowsPerPage);
 
-  const sellerTotalsObj = filteredSales.reduce((acc, sale) => {
-    if (!acc[sale.Seller]) acc[sale.Seller] = 0;
-    acc[sale.Seller] += sale.MRC || 0;
-    return acc;
-  }, {});
-  const sellerTotalsArray = Object.entries(sellerTotalsObj).map(
-    ([seller, total]) => ({ seller, total })
-  );
+  const sellerTotalsArray = useMemo(() => {
+    const sellerTotalsObj = filteredSales.reduce((acc, sale) => {
+      if (!acc[sale.Seller]) acc[sale.Seller] = 0;
+      acc[sale.Seller] += sale.MRC || 0;
+      return acc;
+    }, {});
+    return Object.entries(sellerTotalsObj).map(
+      ([seller, total]) => ({ seller, total })
+    );
+  }, [filteredSales]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -613,8 +637,8 @@ function IndividualSalesList({ sales }) {
         <ChartBarIcon className="icon" /> Individual Sales
       </h2>
 
-      <div className="controls">
-        <div className="filters">
+      <div className="controls" style={{ flexWrap: "wrap" }}>
+        <div className="filters" style={{ marginBottom: 7 }}>
           <select name="month" value={filters.month} onChange={handleFilterChange}>
             <option value="">All Months</option>
             {uniqueMonths.map((m) => (
@@ -640,7 +664,7 @@ function IndividualSalesList({ sales }) {
             ))}
           </select>
         </div>
-        <div className="sort">
+        <div className="sort" style={{ marginLeft: 7 }}>
           <label htmlFor="sortBy">Sort By: </label>
           <select id="sortBy" value={sortBy} onChange={handleSortChange}>
             <option value="month">Month</option>
@@ -822,6 +846,33 @@ function Dashboard({ user }) {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
+  const navLinks = useMemo(() => {
+    const links = [
+      {
+        show: true,
+        to: "/dashboard",
+        label: "Team Dashboard",
+        style: {},
+        ariaCurrent: location.pathname === "/dashboard" ? "page" : undefined,
+      },
+      {
+        show: [ROLES.MANAGER, ROLES.EXECUTIVE].includes(role),
+        to: "/management",
+        label: "Management Dashboard",
+        style: { backgroundColor: "#9c27b0" },
+        ariaCurrent: location.pathname === "/management" ? "page" : undefined,
+      },
+      {
+        show: role === ROLES.EXECUTIVE,
+        to: "/executive",
+        label: "Executive Dashboard",
+        style: { backgroundColor: "#2196F3" },
+        ariaCurrent: location.pathname === "/executive" ? "page" : undefined,
+      },
+    ];
+    return links.filter((l) => l.show);
+  }, [role, location.pathname]);
+
   const handleRefresh = () => fetchSalesData();
   const handleLogout = () => {
     signOut(auth).catch((err) => {
@@ -850,34 +901,6 @@ function Dashboard({ user }) {
   if (error) return <div className="error" role="alert">{error}</div>;
   if (!salesData.length) return <div className="no-data" role="status">No sales data available.</div>;
 
-  // Nav logic: Only show links user is allowed to see, highlight current
-  const navLinks = useMemo(() => {
-    const links = [
-      {
-        show: true,
-        to: "/dashboard",
-        label: "Team Dashboard",
-        style: {},
-        ariaCurrent: location.pathname === "/dashboard" ? "page" : undefined,
-      },
-      {
-        show: [ROLES.MANAGER, ROLES.EXECUTIVE].includes(role),
-        to: "/management",
-        label: "Management Dashboard",
-        style: { backgroundColor: "#9c27b0" },
-        ariaCurrent: location.pathname === "/management" ? "page" : undefined,
-      },
-      {
-        show: role === ROLES.EXECUTIVE,
-        to: "/executive",
-        label: "Executive Dashboard",
-        style: { backgroundColor: "#2196F3" },
-        ariaCurrent: location.pathname === "/executive" ? "page" : undefined,
-      },
-    ];
-    return links.filter((l) => l.show);
-  }, [role, location.pathname]);
-
   return (
     <div className="App">
       <div className="toast-container" aria-live="polite">
@@ -887,32 +910,61 @@ function Dashboard({ user }) {
           </div>
         ))}
       </div>
-      <header className="App-header">
-        {/* Left: logo/title */}
-        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-          <img src="/netspark-logo.png" alt="NetSpark Logo" style={{ height: "50px" }} />
-          <div>
-            <h1 tabIndex={0}>NETSPARK MRC DASHBOARD</h1>
-            {lastUpdated && <p className="last-updated">Last Updated: {lastUpdated}</p>}
+      <header className="App-header" style={{ padding: "9px 14px", marginBottom: 20 }}>
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          minWidth: 0
+        }}>
+          <img src="/netspark-logo.png" alt="NetSpark Logo" style={{
+            height: window.innerWidth < 600 ? 36 : 48,
+            width: "auto",
+            marginRight: 6,
+            marginLeft: 0
+          }} />
+          <div style={{ minWidth: 0 }}>
+            <h1 tabIndex={0} style={{
+              fontSize: window.innerWidth < 600 ? "1.12rem" : undefined,
+              lineHeight: "1.2",
+              margin: 0
+            }}>NETSPARK MRC DASHBOARD</h1>
+            {lastUpdated && (
+              <p className="last-updated" style={{
+                fontSize: window.innerWidth < 600 ? "0.91rem" : undefined
+              }}>Last Updated: {lastUpdated}</p>
+            )}
           </div>
         </div>
-        {/* --- Responsive Nav Bar for Desktop/Mobile --- */}
-        <nav className="topbar-nav" style={{ display: "flex", gap: "8px" }}>
+        <nav className="topbar-nav" style={{
+          display: "flex",
+          gap: "4px",
+          flexWrap: "wrap",
+          alignItems: "center",
+          minWidth: 0
+        }}>
           <button
             className="refresh-btn"
+            style={{ padding: window.innerWidth < 500 ? "7px 10px" : undefined, fontSize: window.innerWidth < 500 ? "0.98em" : undefined }}
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           >
             {theme === "dark" ? "Light Mode" : "Dark Mode"}
           </button>
-          <button className="refresh-btn" onClick={handleRefresh}>
-            Refresh Data
+          <button className="refresh-btn"
+            style={{ padding: window.innerWidth < 500 ? "7px 10px" : undefined, fontSize: window.innerWidth < 500 ? "0.98em" : undefined }}
+            onClick={handleRefresh}>
+            Refresh
           </button>
           {navLinks.map((link) => (
             <Link
               key={link.to}
               to={link.to}
               className="refresh-btn"
-              style={link.style}
+              style={{
+                ...link.style,
+                padding: window.innerWidth < 500 ? "7px 10px" : undefined,
+                fontSize: window.innerWidth < 500 ? "0.98em" : undefined
+              }}
               aria-current={link.ariaCurrent}
             >
               {link.label}
@@ -920,7 +972,11 @@ function Dashboard({ user }) {
           ))}
           <button
             className="refresh-btn"
-            style={{ backgroundColor: "#f44336" }}
+            style={{
+              backgroundColor: "#f44336",
+              padding: window.innerWidth < 500 ? "7px 10px" : undefined,
+              fontSize: window.innerWidth < 500 ? "0.98em" : undefined
+            }}
             onClick={handleLogout}
           >
             Logout

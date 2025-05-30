@@ -5,15 +5,15 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "./firebase";
 import { getUserRole, ROLES } from "./utils/getUserRole";
 
+import LoginScreen from "./LoginScreen";
+import SignupScreen from "./SignupScreen";
+import EmailVerifyScreen from "./EmailVerifyScreen";
+
 // Lazy-load big dashboards for speed
 const Dashboard = lazy(() => import("./DashboardApp"));
 const ManagementDashboard = lazy(() => import("./ManagementDashboard"));
 const ExecutiveDashboard = lazy(() => import("./ExecutiveDashboard"));
 const SellerLandingPage = lazy(() => import("./SellerLandingPage"));
-
-import LoginScreen from "./LoginScreen";
-import SignupScreen from "./SignupScreen";
-import EmailVerifyScreen from "./EmailVerifyScreen";
 
 const ALLOWED_DOMAIN = "@netsparktelecom.com";
 

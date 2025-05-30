@@ -20,7 +20,7 @@ import {
 import "./App.css";
 import { getUserRole, ROLES } from "./utils/getUserRole";
 
-// ----- Utility -----
+// Utility
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -160,25 +160,56 @@ function ExecutiveDashboard() {
   }
 
   return (
-    <div className="App" style={{ padding: 20 }}>
-      {/* Back to main dashboard */}
-      <div style={{ marginBottom: "1rem" }}>
-        <Link
-          to="/"
-          className="refresh-btn"
-          style={{ backgroundColor: "#9c27b0", marginRight: "10px" }}
-        >
-          ← Back to Main Dashboard
-        </Link>
-      </div>
-      <h1 tabIndex={0}>Executive Dashboard (GAAP Revenue)</h1>
+    <div className="App" style={{ padding: window.innerWidth < 700 ? 8 : 22, maxWidth: 1280 }}>
+      <header className="App-header" style={{
+        padding: window.innerWidth < 600 ? "8px 10px" : "14px 18px",
+        marginBottom: window.innerWidth < 600 ? 14 : 26,
+        gap: window.innerWidth < 600 ? 7 : 16
+      }}>
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: window.innerWidth < 700 ? 9 : 18,
+          minWidth: 0
+        }}>
+          <img src="/netspark-logo.png" alt="NetSpark Logo" style={{
+            height: window.innerWidth < 600 ? 34 : 44,
+            width: "auto",
+            marginRight: 4
+          }} />
+          <h1 tabIndex={0} style={{
+            fontSize: window.innerWidth < 700 ? "1.11rem" : "1.38rem",
+            margin: 0,
+            lineHeight: 1.18
+          }}>Executive Dashboard (GAAP Revenue)</h1>
+        </div>
+        <nav style={{
+          display: "flex",
+          gap: window.innerWidth < 500 ? 2 : 9,
+          flexWrap: "wrap",
+          alignItems: "center"
+        }}>
+          <Link
+            to="/"
+            className="refresh-btn"
+            style={{
+              backgroundColor: "#9c27b0",
+              padding: window.innerWidth < 500 ? "7px 10px" : undefined,
+              fontSize: window.innerWidth < 500 ? "0.98em" : undefined
+            }}
+          >
+            ← Main
+          </Link>
+        </nav>
+      </header>
       {error && (
         <p className="error" style={{ color: "red" }}>
           {error}
         </p>
       )}
-      {/* KPI Cards: YTD GAAP & MTD GAAP */}
-      <div className="card-row" style={{ marginBottom: "2rem" }}>
+
+      {/* KPI Cards */}
+      <div className="card-row" style={{ marginBottom: "1.5rem" }}>
         <div className="card metric-card" tabIndex={0} aria-label={`YTD GAAP: ${formatCurrency(ytdGAAP)}`}>
           <h2>YTD GAAP</h2>
           <p className="metric-value">{formatCurrency(ytdGAAP)}</p>
@@ -189,7 +220,7 @@ function ExecutiveDashboard() {
         </div>
       </div>
       {/* Monthly Trend (AreaChart) */}
-      <div className="card chart-card fade-in" style={{ marginBottom: "2rem" }}>
+      <div className="card chart-card fade-in" style={{ marginBottom: "1.4rem" }}>
         <h2 tabIndex={0}>Monthly GAAP Trend (Wireline / Mobility)</h2>
         <div style={{ width: "100%", height: 300 }}>
           <ResponsiveContainer>
@@ -216,7 +247,7 @@ function ExecutiveDashboard() {
                 }}
                 itemStyle={{ color: "#000" }}
               />
-              <Legend wrapperStyle={{ color: "#fff", fontSize: "0.9rem" }} />
+              <Legend wrapperStyle={{ color: "#fff", fontSize: "0.93rem" }} />
               <Area
                 type="monotone"
                 dataKey="wireline"
@@ -247,7 +278,7 @@ function ExecutiveDashboard() {
         </div>
       </div>
       {/* Wireline vs. Mobility Pie Chart */}
-      <div className="card chart-card fade-in" style={{ maxWidth: 500 }}>
+      <div className="card chart-card fade-in" style={{ maxWidth: window.innerWidth < 500 ? "100%" : 460, marginLeft: 0 }}>
         <h2 tabIndex={0}>Wireline vs Mobility GAAP (All 2025)</h2>
         <div style={{ width: "100%", height: 300 }}>
           <ResponsiveContainer>
@@ -256,7 +287,7 @@ function ExecutiveDashboard() {
                 data={wireMobBreakdown}
                 dataKey="value"
                 nameKey="name"
-                outerRadius={100}
+                outerRadius={window.innerWidth < 500 ? 60 : 100}
                 labelLine={false}
                 label={({ name, value }) => `${name}: ${formatCurrency(value)}`}
               >

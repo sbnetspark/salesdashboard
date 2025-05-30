@@ -118,7 +118,7 @@ function buildSellerYTDTotals(salesData) {
   return ytdMap;
 }
 
-// --- Quota Data (hard-coded) ---
+// --- Quota Data ---
 const monthlyQuotas = [
   { Representative: "Adam Meyer", Quota: 0 },
   { Representative: "Alicha Gricher", Quota: 6250 },
@@ -139,7 +139,7 @@ const monthlyQuotas = [
   { Representative: "Zach Moffett", Quota: 14166 },
 ];
 
-// --- ManagementDashboard Main Component ---
+// ---------- Main Component ----------
 function ManagementDashboard() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
@@ -155,12 +155,15 @@ function ManagementDashboard() {
   const [sellerYTDTotals, setSellerYTDTotals] = useState({});
   const [quotaSortBy, setQuotaSortBy] = useState("sellerAsc");
 
-  // Auth check (uses getUserRole)
+  // Auth check
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (currentUser) => {
       setLoading(true);
       setUser(currentUser);
-      setIsManagement(getUserRole(currentUser?.email) === ROLES.MANAGER || getUserRole(currentUser?.email) === ROLES.EXECUTIVE);
+      setIsManagement(
+        getUserRole(currentUser?.email) === ROLES.MANAGER ||
+        getUserRole(currentUser?.email) === ROLES.EXECUTIVE
+      );
       setLoading(false);
     });
     return () => unsub();
@@ -186,7 +189,7 @@ function ManagementDashboard() {
     fetchData();
   }, [isManagement]);
 
-  // Build metrics when data loads
+  // Build metrics
   useEffect(() => {
     if (!salesData.length) {
       setYtdMRC(0);
@@ -214,44 +217,75 @@ function ManagementDashboard() {
     setSellerYTDTotals(buildSellerYTDTotals(data2025));
   }, [salesData]);
 
+  // UI/UX Responsive Header & Navigation
   if (loading) return <div className="loader" role="status">Loading management data...</div>;
   if (!user) return <div style={{ padding: 20 }}><p>You must be logged in to view the management dashboard.</p></div>;
   if (!isManagement) return <div style={{ padding: 20 }}><h2>Access Denied</h2><p>You do not have permission to view this page.</p></div>;
 
-  // --- Render ---
   return (
-    <div className="App" style={{ padding: 20 }}>
-      <div style={{ marginBottom: "1rem" }}>
-        <Link
-          to="/"
-          className="refresh-btn"
-          style={{
-            backgroundColor: "#9c27b0",
-            marginRight: "10px",
-            textDecoration: "none",
-          }}
-        >
-          ← Back to Main Dashboard
-        </Link>
-      </div>
-      <h1 style={{ marginBottom: "1rem" }}>Management Dashboard (2025)</h1>
+    <div className="App" style={{ padding: window.innerWidth < 700 ? 7 : 22, maxWidth: 1280 }}>
+      <header className="App-header" style={{
+        padding: window.innerWidth < 600 ? "9px 10px" : "14px 18px",
+        marginBottom: window.innerWidth < 600 ? 13 : 24,
+        gap: window.innerWidth < 600 ? 7 : 16
+      }}>
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: window.innerWidth < 700 ? 9 : 18,
+          minWidth: 0
+        }}>
+          <img src="/netspark-logo.png" alt="NetSpark Logo" style={{
+            height: window.innerWidth < 600 ? 34 : 44,
+            width: "auto",
+            marginRight: 4
+          }} />
+          <h1 tabIndex={0} style={{
+            fontSize: window.innerWidth < 700 ? "1.07rem" : "1.34rem",
+            margin: 0,
+            lineHeight: 1.22
+          }}>Management Dashboard (2025)</h1>
+        </div>
+        <nav style={{
+          display: "flex",
+          gap: window.innerWidth < 500 ? 2 : 9,
+          flexWrap: "wrap",
+          alignItems: "center"
+        }}>
+          <Link
+            to="/"
+            className="refresh-btn"
+            style={{
+              backgroundColor: "#9c27b0",
+              padding: window.innerWidth < 500 ? "7px 10px" : undefined,
+              fontSize: window.innerWidth < 500 ? "0.99em" : undefined
+            }}
+          >
+            ← Main
+          </Link>
+        </nav>
+      </header>
+
       {error && (
         <p className="error" style={{ color: "red" }}>
           {error}
         </p>
       )}
-      <h2 style={{ marginTop: 40 }}>MRC-Based (Upgrades = $15)</h2>
-      <div className="card-row" style={{ marginBottom: "2rem" }}>
-        <div className="card metric-card">
+
+      {/* ---- Metric Cards ---- */}
+      <div className="card-row" style={{ marginBottom: "1.5rem" }}>
+        <div className="card metric-card" tabIndex={0}>
           <h2>YTD MRC</h2>
           <p className="metric-value">{formatCurrency(ytdMRC)}</p>
         </div>
-        <div className="card metric-card">
+        <div className="card metric-card" tabIndex={0}>
           <h2>MTD MRC</h2>
           <p className="metric-value">{formatCurrency(mtdMRC)}</p>
         </div>
       </div>
-      <div className="card chart-card fade-in" style={{ marginBottom: "2rem" }}>
+
+      {/* ---- Monthly Trend Area Chart ---- */}
+      <div className="card chart-card fade-in" style={{ marginBottom: "1.3rem" }}>
         <h2>
           <ChartBarIcon className="icon" /> Monthly Trend (Wireline / Wireless / Total)
         </h2>
@@ -283,7 +317,7 @@ function ManagementDashboard() {
                 }}
                 itemStyle={{ color: "#000" }}
               />
-              <Legend wrapperStyle={{ color: "#fff", fontSize: "0.9rem" }} />
+              <Legend wrapperStyle={{ color: "#fff", fontSize: "0.92rem" }} />
               <Area
                 type="monotone"
                 dataKey="wireline"
@@ -313,9 +347,15 @@ function ManagementDashboard() {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* ---- Pie Chart Breakdown ---- */}
       <div
         className="card chart-card fade-in"
-        style={{ marginBottom: "2rem", maxWidth: 500 }}
+        style={{
+          marginBottom: "1.6rem",
+          maxWidth: window.innerWidth < 500 ? "100%" : 450,
+          marginLeft: 0
+        }}
       >
         <h2>
           <ChartBarIcon className="icon" /> Wireline vs. Mobility Breakdown (MRC 2025)
@@ -327,7 +367,7 @@ function ManagementDashboard() {
                 data={wireMobBreakdown}
                 dataKey="value"
                 nameKey="name"
-                outerRadius={100}
+                outerRadius={window.innerWidth < 500 ? 60 : 100}
                 labelLine={false}
                 label={({ name, value }) => `${name}: ${formatCurrency(value)}`}
               >
@@ -348,6 +388,7 @@ function ManagementDashboard() {
           </ResponsiveContainer>
         </div>
       </div>
+
       <SortableQuotaPerformance
         data={salesData}
         monthlyQuotas={monthlyQuotas}
@@ -369,9 +410,8 @@ function ManagementDashboard() {
   );
 }
 
-/********************************************
-  6) Quota Performance (MRC) 
-********************************************/
+// ----- Keep these components unchanged (as you already had) -----
+
 function SortableQuotaPerformance({
   data,
   monthlyQuotas,
@@ -382,7 +422,6 @@ function SortableQuotaPerformance({
   const now = new Date();
   const currentMonthStr = `${MONTH_ORDER[now.getMonth()]} 2025`;
 
-  // Build row data
   let rowData = monthlyQuotas.map((rep) => {
     const repRows = data.filter(
       (s) =>
@@ -403,7 +442,6 @@ function SortableQuotaPerformance({
     };
   });
 
-  // Sort
   if (sortBy === "sellerAsc") {
     rowData.sort((a, b) => a.repName.localeCompare(b.repName));
   } else if (sortBy === "sellerDesc") {
@@ -502,20 +540,15 @@ function SortableQuotaPerformance({
   );
 }
 
-/********************************************
-  7) Month-by-Month Stack Rank (MRC 2025) + YTD
-********************************************/
 function StackRankYTD({ allMonthRanks, sortMonth, onSortMonthChange, sellerYTDTotals }) {
   const months = getAll2025Months();
 
-  // Gather all unique sellers
   const allSellersSet = new Set();
   months.forEach((m) => {
     (allMonthRanks[m] || []).forEach((r) => allSellersSet.add(r.seller));
   });
   const allSellers = Array.from(allSellersSet);
 
-  // If a user chooses a month => sort by that month's rank
   if (sortMonth && allMonthRanks[sortMonth]) {
     const ranksArr = allMonthRanks[sortMonth];
     const rankMap = {};
@@ -524,7 +557,6 @@ function StackRankYTD({ allMonthRanks, sortMonth, onSortMonthChange, sellerYTDTo
     });
     allSellers.sort((a, b) => (rankMap[a] || 9999) - (rankMap[b] || 9999));
   } else {
-    // default: sort A-Z
     allSellers.sort((a, b) => a.localeCompare(b));
   }
 
@@ -569,7 +601,6 @@ function StackRankYTD({ allMonthRanks, sortMonth, onSortMonthChange, sellerYTDTo
                   {m}
                 </th>
               ))}
-              {/* YTD columns */}
               <th style={{ textAlign: "center" }}>YTD MRC</th>
               <th style={{ textAlign: "center" }}>YTD Rank</th>
             </tr>
@@ -585,7 +616,6 @@ function StackRankYTD({ allMonthRanks, sortMonth, onSortMonthChange, sellerYTDTo
                     const rank = rankObj ? rankObj.rank : null;
 
                     if (idx === 0) {
-                      // First month => no arrow comparison
                       return (
                         <td key={m} style={{ textAlign: "center" }}>
                           {rank || "—"}
@@ -627,7 +657,6 @@ function StackRankYTD({ allMonthRanks, sortMonth, onSortMonthChange, sellerYTDTo
                       );
                     }
                   })}
-                  {/* YTD columns */}
                   <td style={{ textAlign: "center" }}>
                     {formatCurrency(ytdData.total)}
                   </td>
@@ -644,17 +673,12 @@ function StackRankYTD({ allMonthRanks, sortMonth, onSortMonthChange, sellerYTDTo
   );
 }
 
-/********************************************
-  8) Quota Attainment Chart 
-********************************************/
 function QuotaAttainmentChart({ data, monthlyQuotas }) {
   const months = getAll2025Months();
 
-  // Build list of sellers
   const sellers = monthlyQuotas.map((rep) => rep.Representative).sort();
   const [selectedRep, setSelectedRep] = useState(sellers[0] || "");
 
-  // Build chart data for selected rep, across all months
   const chartData = months.map((m) => {
     const quotaRow = monthlyQuotas.find(
       (r) => r.Representative.toLowerCase() === selectedRep.toLowerCase()
