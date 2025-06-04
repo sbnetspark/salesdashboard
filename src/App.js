@@ -9,11 +9,12 @@ import LoginScreen from "./LoginScreen";
 import SignupScreen from "./SignupScreen";
 import EmailVerifyScreen from "./EmailVerifyScreen";
 
-// Lazy-load big dashboards for speed
+// Lazy-load dashboards for speed
 const Dashboard = lazy(() => import("./DashboardApp"));
 const ManagementDashboard = lazy(() => import("./ManagementDashboard"));
 const ExecutiveDashboard = lazy(() => import("./ExecutiveDashboard"));
 const SellerLandingPage = lazy(() => import("./SellerLandingPage"));
+const AccountPage = lazy(() => import("./AccountPage"));
 
 const ALLOWED_DOMAIN = "@netsparktelecom.com";
 
@@ -21,38 +22,40 @@ const ALLOWED_DOMAIN = "@netsparktelecom.com";
  * Route handling based on role.
  * Each role only sees the routes they're allowed.
  */
-function AppRouter({ user }) {
+function AppRouter({ user, theme, setTheme }) {
   const role = getUserRole(user.email);
 
   return (
     <Routes>
       {role === ROLES.SELLER && (
         <>
-          <Route path="/" element={<SellerLandingPage user={user} />} />
-          <Route path="/dashboard" element={<Dashboard user={user} />} />
-          {/* Block all other routes */}
+          <Route path="/" element={<SellerLandingPage user={user} theme={theme} setTheme={setTheme} />} />
+          <Route path="/dashboard" element={<Dashboard user={user} theme={theme} setTheme={setTheme} />} />
+          <Route path="/account" element={<AccountPage user={user} theme={theme} setTheme={setTheme} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </>
       )}
       {role === ROLES.MANAGER && (
         <>
-          <Route path="/" element={<SellerLandingPage user={user} />} />
-          <Route path="/dashboard" element={<Dashboard user={user} />} />
-          <Route path="/management" element={<ManagementDashboard user={user} />} />
+          <Route path="/" element={<SellerLandingPage user={user} theme={theme} setTheme={setTheme} />} />
+          <Route path="/dashboard" element={<Dashboard user={user} theme={theme} setTheme={setTheme} />} />
+          <Route path="/management" element={<ManagementDashboard user={user} theme={theme} setTheme={setTheme} />} />
+          <Route path="/account" element={<AccountPage user={user} theme={theme} setTheme={setTheme} />} />
           <Route path="/executive" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </>
       )}
       {role === ROLES.EXECUTIVE && (
         <>
-          <Route path="/" element={<SellerLandingPage user={user} />} />
-          <Route path="/dashboard" element={<Dashboard user={user} />} />
-          <Route path="/management" element={<ManagementDashboard user={user} />} />
-          <Route path="/executive" element={<ExecutiveDashboard user={user} />} />
+          <Route path="/" element={<SellerLandingPage user={user} theme={theme} setTheme={setTheme} />} />
+          <Route path="/dashboard" element={<Dashboard user={user} theme={theme} setTheme={setTheme} />} />
+          <Route path="/management" element={<ManagementDashboard user={user} theme={theme} setTheme={setTheme} />} />
+          <Route path="/executive" element={<ExecutiveDashboard user={user} theme={theme} setTheme={setTheme} />} />
+          <Route path="/account" element={<AccountPage user={user} theme={theme} setTheme={setTheme} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </>
       )}
-      {/* For users not recognized (should never get here, but extra safe) */}
+      {/* For users not recognized */}
       <Route
         path="*"
         element={
@@ -72,18 +75,29 @@ function App() {
   const [emailDomainError, setEmailDomainError] = useState("");
   const [needsVerification, setNeedsVerification] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark");
 
-  // Set page title once
+  // Set page title
   useEffect(() => {
     document.title = "NetSpark Sales Dashboard";
   }, []);
 
-  // Auth listener (single source of truth for user)
+  // Theme management
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === "light") {
+      root.setAttribute("data-theme", "light");
+    } else {
+      root.removeAttribute("data-theme");
+    }
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  // Auth listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         const email = (currentUser.email || "").trim().toLowerCase();
-        // 1. Enforce domain
         if (!email.endsWith(ALLOWED_DOMAIN)) {
           setEmailDomainError(`Only ${ALLOWED_DOMAIN} emails are allowed.`);
           signOut(auth);
@@ -92,7 +106,6 @@ function App() {
           setAuthChecking(false);
           return;
         }
-        // 2. Require email verification
         if (!currentUser.emailVerified) {
           setNeedsVerification(true);
           setEmailDomainError("");
@@ -100,13 +113,11 @@ function App() {
           setAuthChecking(false);
           return;
         }
-        // 3. User is ready
         setNeedsVerification(false);
         setEmailDomainError("");
         setUser(currentUser);
         setAuthChecking(false);
       } else {
-        // Not signed in
         setUser(null);
         setEmailDomainError("");
         setNeedsVerification(false);
@@ -116,7 +127,6 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Loader while checking auth
   if (authChecking) {
     return (
       <div className="loader" role="status" aria-live="polite">
@@ -125,7 +135,6 @@ function App() {
     );
   }
 
-  // Blocked for non-company email
   if (emailDomainError) {
     return (
       <main className="login-gate" role="main" aria-label="Blocked - Email Domain">
@@ -139,7 +148,6 @@ function App() {
     );
   }
 
-  // Blocked for needing email verification
   if (needsVerification && user) {
     return (
       <main className="login-gate" role="main" aria-label="Email Verification Required">
@@ -148,7 +156,6 @@ function App() {
     );
   }
 
-  // Not signed in
   if (!user) {
     return showSignup ? (
       <main className="login-gate" role="main" aria-label="Sign Up">
@@ -161,7 +168,6 @@ function App() {
     );
   }
 
-  // Authenticated and ready
   return (
     <Router>
       <Suspense
@@ -171,7 +177,7 @@ function App() {
           </div>
         }
       >
-        <AppRouter user={user} />
+        <AppRouter user={user} theme={theme} setTheme={setTheme} />
       </Suspense>
     </Router>
   );

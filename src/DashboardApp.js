@@ -1,15 +1,7 @@
-// src/DashboardApp.js
-import React, {
-  useEffect,
-  useState,
-  useCallback,
-  useRef,
-  useMemo,
-} from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { collection, getDocs, onSnapshot } from "firebase/firestore";
-import { db, auth } from "./firebase";
-import { signOut } from "firebase/auth";
-import { Link, useLocation } from "react-router-dom";
+import { db } from "./firebase";
+import NavBar from "./NavBar";
 import { ChartBarIcon } from "@heroicons/react/24/solid";
 import {
   BarChart,
@@ -18,12 +10,12 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Legend,
+  CartesianGrid,
 } from "recharts";
 import "./App.css";
-import { getUserRole, ROLES } from "./utils/getUserRole";
+import { getUserRole } from "./utils/getUserRole";
 
-// ---- Utility ----
+// Utility
 const MONTH_ORDER = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
@@ -42,10 +34,10 @@ function getCurrentMonthYear() {
   const year = now.getFullYear();
   return `${month} ${year}`;
 }
-function getLastThreeMonths() {
+function getLastFourMonths() {
   const now = new Date();
   const months = [];
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 4; i++) {
     const tempDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const monthName = MONTH_ORDER[tempDate.getMonth()];
     const year = tempDate.getFullYear();
@@ -54,7 +46,7 @@ function getLastThreeMonths() {
   return months;
 }
 
-// ---- 1) KPI Components ----
+// KPI Components
 function TotalMRC({ total }) {
   return (
     <div className="card metric-card" tabIndex={0} aria-label={`Total YTD MRC ${formatCurrency(total)}`}>
@@ -76,25 +68,20 @@ function MTDCard({ salesData }) {
   );
 }
 
-// ---- 2) MonthlyStackedBar ----
-function MonthlyStackedBar({ salesData }) {
+// Total Revenue for Month (Replaces MonthlyStackedBar)
+function TotalRevenueForMonth({ salesData }) {
   const monthlyArray = useMemo(() => {
     const agg = {};
     salesData.forEach((sale) => {
-      const { Month, MRC, Type } = sale;
+      const { Month, MRC } = sale;
       if (!Month) return;
-      if (!agg[Month]) agg[Month] = { wireline: 0, mobility: 0 };
-      if (Type?.toLowerCase().includes("wireline")) {
-        agg[Month].wireline += MRC || 0;
-      } else {
-        agg[Month].mobility += MRC || 0;
-      }
+      if (!agg[Month]) agg[Month] = 0;
+      agg[Month] += MRC || 0;
     });
     return Object.entries(agg)
-      .map(([month, vals]) => ({
+      .map(([month, total]) => ({
         month,
-        wireline: vals.wireline,
-        mobility: vals.mobility,
+        total,
       }))
       .filter((item) => item.month && item.month.includes(" "))
       .sort((a, b) => {
@@ -107,14 +94,15 @@ function MonthlyStackedBar({ salesData }) {
   }, [salesData]);
 
   return (
-    <div className="card chart-card" tabIndex={0} aria-label="Monthly Wireline vs. Mobility">
+    <div className="card chart-card" tabIndex={0} aria-label="Total Revenue for Month">
       <h2>
-        <ChartBarIcon className="icon" /> Monthly Wireline vs. Mobility
+        <ChartBarIcon className="icon" /> Total Revenue for Month
       </h2>
       <ResponsiveContainer width="100%" height={280}>
         <BarChart data={monthlyArray}>
+          <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="month" stroke="#fff" fontSize={13} hide={window.innerWidth < 600} />
-          <YAxis stroke="#fff" fontSize={13} />
+          <YAxis stroke="#fff" fontSize={13} tickFormatter={formatCurrency} />
           <Tooltip
             formatter={formatCurrency}
             labelStyle={{ color: "#000" }}
@@ -125,16 +113,14 @@ function MonthlyStackedBar({ salesData }) {
             }}
             itemStyle={{ color: "#000" }}
           />
-          <Legend />
-          <Bar dataKey="wireline" stackId="mrc" fill="#ff6f32" name="Wireline" />
-          <Bar dataKey="mobility" stackId="mrc" fill="#00bfff" name="Mobility" />
+          <Bar dataKey="total" fill="#ff6f32" name="Total MRC" />
         </BarChart>
       </ResponsiveContainer>
     </div>
   );
 }
 
-// ---- 3) Seller Stack Rank ----
+// Seller Stack Rank (Enhanced Styling)
 function SellerStackRank({ ranking }) {
   return (
     <div className="card leaderboard" tabIndex={0} aria-label="Seller Stack Rank YTD">
@@ -146,13 +132,16 @@ function SellerStackRank({ ranking }) {
           <li
             key={seller.Seller}
             className={
-              index === 0 ? "gold"
-                : index === 1 ? "silver"
-                : index === 2 ? "bronze"
-                : ""
+              index === 0 ? "gold" :
+              index === 1 ? "silver" :
+              index === 2 ? "bronze" :
+              ""
             }
             tabIndex={0}
             aria-label={`#${index + 1} ${seller.Seller}: ${formatCurrency(seller.TotalMRC)}`}
+            style={{
+              borderLeft: index < 3 ? `4px solid var(--${["gold", "silver", "bronze"][index]})` : "none",
+            }}
           >
             <strong>{seller.Seller}</strong>
             <span>{formatCurrency(seller.TotalMRC)}</span>
@@ -163,7 +152,7 @@ function SellerStackRank({ ranking }) {
   );
 }
 
-// ---- 4) Current Month Drill-Down (Modal) ----
+// Current Month Drill-Down (Unchanged)
 function SellerCurrentMonthDetailed({ salesData }) {
   const currentMonthYear = getCurrentMonthYear();
   const [sellerFilter, setSellerFilter] = useState("");
@@ -183,7 +172,6 @@ function SellerCurrentMonthDetailed({ salesData }) {
     return () => window.removeEventListener("keydown", handler);
   }, [modalOpen]);
 
-  // --- ALL filtering and sorting inside useMemo ---
   const filteredSellers = useMemo(() => {
     let sellers = Object.values(
       salesData.reduce((acc, sale) => {
@@ -203,12 +191,10 @@ function SellerCurrentMonthDetailed({ salesData }) {
       }, {})
     );
 
-    // Filter
     sellers = sellers.filter((s) =>
       s.Seller.toLowerCase().includes(sellerFilter.toLowerCase())
     );
 
-    // Sort
     if (sortBy === "wireline") {
       sellers = [...sellers].sort((a, b) => b.Wireline - a.Wireline);
     } else if (sortBy === "wireless") {
@@ -371,15 +357,12 @@ function SellerCurrentMonthDetailed({ salesData }) {
   );
 }
 
-/*------------------------------------------------
-  5) Rolling 3 Months
-------------------------------------------------*/
-function Rolling3Months({ salesData }) {
-  const months = getLastThreeMonths();
+// Rolling 4 Months (Updated from Rolling3Months)
+function Rolling4Months({ salesData }) {
+  const months = getLastFourMonths();
   const [sellerFilter, setSellerFilter] = useState("");
   const [sortBy, setSortBy] = useState("mrc");
 
-  // All filter/sort logic in a useMemo!
   const monthCards = useMemo(() => {
     return months.map((mStr) => {
       const monthlySales = salesData.filter((s) => s.Month === mStr);
@@ -402,14 +385,12 @@ function Rolling3Months({ salesData }) {
         total: obj.wireline + obj.wireless,
       }));
 
-      // Filter by seller name
       if (sellerFilter.trim() !== "") {
         resultArray = resultArray.filter((r) =>
           r.seller.toLowerCase().includes(sellerFilter.toLowerCase())
         );
       }
 
-      // Sort
       if (sortBy === "wireline") {
         resultArray.sort((a, b) => b.wireline - a.wireline);
       } else if (sortBy === "wireless") {
@@ -417,7 +398,6 @@ function Rolling3Months({ salesData }) {
       } else if (sortBy === "seller") {
         resultArray.sort((a, b) => a.seller.localeCompare(b.seller));
       } else {
-        // "mrc"
         resultArray.sort((a, b) => b.total - a.total);
       }
 
@@ -431,12 +411,11 @@ function Rolling3Months({ salesData }) {
   return (
     <div className="card rolling-months fade-in">
       <h2>
-        <ChartBarIcon className="icon" /> Rolling 3 Months
+        <ChartBarIcon className="icon" /> Rolling 4 Months
       </h2>
       <p style={{ marginBottom: "8px" }}>
         Aggregated by seller (Wireline + Wireless)
       </p>
-
       <div className="controls" style={{ marginBottom: "12px", flexWrap: "wrap" }}>
         <div className="filters">
           <label>Filter Seller:</label>
@@ -455,9 +434,9 @@ function Rolling3Months({ salesData }) {
           />
         </div>
         <div className="sort" style={{ marginLeft: 10 }}>
-          <label htmlFor="r3-sort">Sort By:</label>
+          <label htmlFor="r4-sort">Sort By:</label>
           <select
-            id="r3-sort"
+            id="r4-sort"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
             style={{ marginLeft: 4 }}
@@ -469,7 +448,6 @@ function Rolling3Months({ salesData }) {
           </select>
         </div>
       </div>
-
       {monthCards.map(({ mStr, resultArray }) => (
         <div className="month-card" key={mStr}>
           <h3>{mStr}</h3>
@@ -508,272 +486,14 @@ function Rolling3Months({ salesData }) {
   );
 }
 
-/*------------------------------------------------
-  6) Individual Sales
-------------------------------------------------*/
-function IndividualSalesList({ sales }) {
-  const [filters, setFilters] = useState({ month: "", seller: "", type: "" });
-  const [sortBy, setSortBy] = useState("month");
-  const [page, setPage] = useState(0);
-  const rowsPerPage = 50;
-  const [showSellerTotals, setShowSellerTotals] = useState(false);
-
-  const validSales = sales.filter(
-    (s) => s.Month && s.Month.includes(" ")
-  );
-
-  const uniqueMonths = useMemo(() => [...new Set(validSales.map((s) => s.Month))].sort(
-    (a, b) => {
-      const [ma, ya] = a.split(" ");
-      const [mb, yb] = b.split(" ");
-      const yearDiff = parseInt(ya, 10) - parseInt(yb, 10);
-      if (yearDiff !== 0) return yearDiff;
-      return MONTH_ORDER.indexOf(ma) - MONTH_ORDER.indexOf(mb);
-    }
-  ), [validSales]);
-  const uniqueSellers = useMemo(() => [...new Set(validSales.map((s) => s.Seller))].sort(), [validSales]);
-  const uniqueTypes = useMemo(() => [...new Set(validSales.map((s) => s.Type))].sort(), [validSales]);
-
-  const filteredSales = useMemo(() =>
-    validSales.filter((sale) => {
-      if (filters.month && sale.Month !== filters.month) return false;
-      if (filters.seller && sale.Seller !== filters.seller) return false;
-      if (filters.type && sale.Type !== filters.type) return false;
-      return true;
-    }), [filters, validSales]
-  );
-
-  const totalFilteredSales = useMemo(
-    () => filteredSales.reduce((sum, sale) => sum + (sale.MRC || 0), 0),
-    [filteredSales]
-  );
-
-  const sortedSales = useMemo(() => {
-    function wirelineValue(obj) {
-      return obj.Type?.toLowerCase().includes("wireline") ? (obj.MRC || 0) : 0;
-    }
-    function wirelessValue(obj) {
-      return obj.Type?.toLowerCase().includes("wireless") ||
-        obj.Type?.toLowerCase().includes("mobility")
-        ? (obj.MRC || 0)
-        : 0;
-    }
-
-    const arr = [...filteredSales];
-    if (sortBy === "wireline") {
-      arr.sort((a, b) => wirelineValue(b) - wirelineValue(a));
-    } else if (sortBy === "wireless") {
-      arr.sort((a, b) => wirelessValue(b) - wirelessValue(a));
-    } else if (sortBy === "mrc") {
-      arr.sort((a, b) => (b.MRC || 0) - (a.MRC || 0));
-    } else if (sortBy === "seller") {
-      arr.sort((a, b) => a.Seller.localeCompare(b.Seller));
-    } else {
-      // default "month"
-      const [mA, yA] = a.Month.split(" ");
-      const [mB, yB] = b.Month.split(" ");
-      const yearDiff = parseInt(yA, 10) - parseInt(yB, 10);
-      if (yearDiff !== 0) return yearDiff;
-      return MONTH_ORDER.indexOf(mA) - MONTH_ORDER.indexOf(mB);
-    }
-    return arr;
-  }, [filteredSales, sortBy]);
-
-  const paginatedSales = sortedSales.slice(
-    page * rowsPerPage,
-    (page + 1) * rowsPerPage
-  );
-  const totalPages = Math.ceil(sortedSales.length / rowsPerPage);
-
-  const sellerTotalsArray = useMemo(() => {
-    const sellerTotalsObj = filteredSales.reduce((acc, sale) => {
-      if (!acc[sale.Seller]) acc[sale.Seller] = 0;
-      acc[sale.Seller] += sale.MRC || 0;
-      return acc;
-    }, {});
-    return Object.entries(sellerTotalsObj).map(
-      ([seller, total]) => ({ seller, total })
-    );
-  }, [filteredSales]);
-
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters((prev) => ({ ...prev, [name]: value }));
-    setPage(0);
-  };
-
-  const handleSortChange = (e) => {
-    setSortBy(e.target.value);
-    setPage(0);
-  };
-
-  const handleExportCSV = () => {
-    const headers = ["Month", "Seller", "MRC", "Type"];
-    const rows = filteredSales.map((s) => [
-      s.Month,
-      s.Seller,
-      (s.MRC || 0).toFixed(2),
-      s.Type,
-    ]);
-
-    let csvContent =
-      "data:text/csv;charset=utf-8," +
-      headers.join(",") +
-      "\n" +
-      rows.map((r) => r.join(",")).join("\n");
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "individual_sales.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  return (
-    <div className="card sales-list fade-in">
-      <h2>
-        <ChartBarIcon className="icon" /> Individual Sales
-      </h2>
-
-      <div className="controls" style={{ flexWrap: "wrap" }}>
-        <div className="filters" style={{ marginBottom: 7 }}>
-          <select name="month" value={filters.month} onChange={handleFilterChange}>
-            <option value="">All Months</option>
-            {uniqueMonths.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-          <select name="seller" value={filters.seller} onChange={handleFilterChange}>
-            <option value="">All Sellers</option>
-            {uniqueSellers.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-          <select name="type" value={filters.type} onChange={handleFilterChange}>
-            <option value="">All Types</option>
-            {uniqueTypes.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="sort" style={{ marginLeft: 7 }}>
-          <label htmlFor="sortBy">Sort By: </label>
-          <select id="sortBy" value={sortBy} onChange={handleSortChange}>
-            <option value="month">Month</option>
-            <option value="seller">Seller (A-Z)</option>
-            <option value="mrc">Total MRC (High to Low)</option>
-            <option value="wireline">Wireline (High to Low)</option>
-            <option value="wireless">Wireless (High to Low)</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="sales-total">
-        <strong>Total: {formatCurrency(totalFilteredSales)}</strong>
-      </div>
-
-      <button
-        className="refresh-btn"
-        style={{ marginRight: "10px", marginBottom: "10px" }}
-        onClick={() => setShowSellerTotals(!showSellerTotals)}
-      >
-        {showSellerTotals ? "Hide" : "Show"} Seller Totals
-      </button>
-      <button
-        className="refresh-btn"
-        style={{ marginBottom: "10px" }}
-        onClick={handleExportCSV}
-      >
-        Export CSV
-      </button>
-
-      {showSellerTotals && (
-        <div
-          className="table-container"
-          style={{ maxHeight: "200px", marginBottom: "15px" }}
-        >
-          <table>
-            <thead>
-              <tr>
-                <th>Seller</th>
-                <th>Total MRC</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sellerTotalsArray.map(({ seller, total }) => (
-                <tr key={seller}>
-                  <td>{seller}</td>
-                  <td>{formatCurrency(total)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Month</th>
-              <th>Seller</th>
-              <th>MRC</th>
-              <th>Type</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedSales.map((sale, idx) => (
-              <tr key={idx}>
-                <td>{sale.Month}</td>
-                <td>{sale.Seller}</td>
-                <td>{formatCurrency(sale.MRC)}</td>
-                <td>{sale.Type}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {totalPages > 1 && (
-        <div className="pagination">
-          <button disabled={page === 0} onClick={() => setPage(page - 1)}>
-            Previous
-          </button>
-          <span>
-            Page {page + 1} of {totalPages}
-          </span>
-          <button
-            disabled={page === totalPages - 1}
-            onClick={() => setPage(page + 1)}
-          >
-            Next
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---- 7) Main Dashboard Component ----
-function Dashboard({ user }) {
+// Main Dashboard Component
+function Dashboard({ user, theme, setTheme }) {
   const [salesData, setSalesData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark");
   const [newSales, setNewSales] = useState([]);
   const docsRef = useRef(new Set());
-  const location = useLocation();
-
-  const role = useMemo(() => getUserRole(user?.email), [user]);
 
   const fetchSalesData = useCallback(async () => {
     try {
@@ -836,50 +556,6 @@ function Dashboard({ user }) {
     }
   }, [newSales]);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === "light") {
-      root.setAttribute("data-theme", "light");
-    } else {
-      root.removeAttribute("data-theme");
-    }
-    localStorage.setItem("theme", theme);
-  }, [theme]);
-
-  const navLinks = useMemo(() => {
-    const links = [
-      {
-        show: true,
-        to: "/dashboard",
-        label: "Team Dashboard",
-        style: {},
-        ariaCurrent: location.pathname === "/dashboard" ? "page" : undefined,
-      },
-      {
-        show: [ROLES.MANAGER, ROLES.EXECUTIVE].includes(role),
-        to: "/management",
-        label: "Management Dashboard",
-        style: { backgroundColor: "#9c27b0" },
-        ariaCurrent: location.pathname === "/management" ? "page" : undefined,
-      },
-      {
-        show: role === ROLES.EXECUTIVE,
-        to: "/executive",
-        label: "Executive Dashboard",
-        style: { backgroundColor: "#2196F3" },
-        ariaCurrent: location.pathname === "/executive" ? "page" : undefined,
-      },
-    ];
-    return links.filter((l) => l.show);
-  }, [role, location.pathname]);
-
-  const handleRefresh = () => fetchSalesData();
-  const handleLogout = () => {
-    signOut(auth).catch((err) => {
-      console.error("Error logging out:", err);
-    });
-  };
-
   const totalMRC = useMemo(
     () => salesData.reduce((sum, s) => sum + (s.MRC || 0), 0),
     [salesData]
@@ -903,99 +579,26 @@ function Dashboard({ user }) {
 
   return (
     <div className="App">
+      <NavBar user={user} theme={theme} setTheme={setTheme} />
       <div className="toast-container" aria-live="polite">
         {newSales.map((n) => (
-          <div key={n.id} className="toast" tabIndex={0}>
+          <div key={n.id} className="modal-content" tabIndex={0}>
             {n.message}
           </div>
         ))}
       </div>
-      <header className="App-header" style={{ padding: "9px 14px", marginBottom: 20 }}>
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          minWidth: 0
-        }}>
-          <img src="/netspark-logo.png" alt="NetSpark Logo" style={{
-            height: window.innerWidth < 600 ? 36 : 48,
-            width: "auto",
-            marginRight: 6,
-            marginLeft: 0
-          }} />
-          <div style={{ minWidth: 0 }}>
-            <h1 tabIndex={0} style={{
-              fontSize: window.innerWidth < 600 ? "1.12rem" : undefined,
-              lineHeight: "1.2",
-              margin: 0
-            }}>NETSPARK MRC DASHBOARD</h1>
-            {lastUpdated && (
-              <p className="last-updated" style={{
-                fontSize: window.innerWidth < 600 ? "0.91rem" : undefined
-              }}>Last Updated: {lastUpdated}</p>
-            )}
-          </div>
-        </div>
-        <nav className="topbar-nav" style={{
-          display: "flex",
-          gap: "4px",
-          flexWrap: "wrap",
-          alignItems: "center",
-          minWidth: 0
-        }}>
-          <button
-            className="refresh-btn"
-            style={{ padding: window.innerWidth < 500 ? "7px 10px" : undefined, fontSize: window.innerWidth < 500 ? "0.98em" : undefined }}
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          >
-            {theme === "dark" ? "Light Mode" : "Dark Mode"}
-          </button>
-          <button className="refresh-btn"
-            style={{ padding: window.innerWidth < 500 ? "7px 10px" : undefined, fontSize: window.innerWidth < 500 ? "0.98em" : undefined }}
-            onClick={handleRefresh}>
-            Refresh
-          </button>
-          {navLinks.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className="refresh-btn"
-              style={{
-                ...link.style,
-                padding: window.innerWidth < 500 ? "7px 10px" : undefined,
-                fontSize: window.innerWidth < 500 ? "0.98em" : undefined
-              }}
-              aria-current={link.ariaCurrent}
-            >
-              {link.label}
-            </Link>
-          ))}
-          <button
-            className="refresh-btn"
-            style={{
-              backgroundColor: "#f44336",
-              padding: window.innerWidth < 500 ? "7px 10px" : undefined,
-              fontSize: window.innerWidth < 500 ? "0.98em" : undefined
-            }}
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
-        </nav>
-      </header>
       <div className="dashboard-stack">
         <div className="card-row">
           <TotalMRC total={totalMRC} />
           <MTDCard salesData={salesData} />
         </div>
-        <MonthlyStackedBar salesData={salesData} />
+        <TotalRevenueForMonth salesData={salesData} />
         <SellerStackRank ranking={sellerRanking} />
         <SellerCurrentMonthDetailed salesData={salesData} />
-        <Rolling3Months salesData={salesData} />
-        <IndividualSalesList sales={salesData} />
+        <Rolling4Months salesData={salesData} />
       </div>
       {lastUpdated && (
-        <div className="update-notification" aria-live="polite">
+        <div className="modal-content" aria-label="New sales data updated">
           New sales data loaded at {lastUpdated}!
         </div>
       )}
