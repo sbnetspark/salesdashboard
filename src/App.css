@@ -15,15 +15,15 @@
   --color-brand-blue-light: #1A2A5A; /* Lighter navy for accents */
   --color-brand-gray: #A0A0A0; /* Secondary text */
   --color-bg: #0C1228; /* Navy background */
-  --color-bg-gradient-end: #1A2A5A; /* Gradient end */
+  --color-bg-gradient-end: #14171D; /* Adjusted to a slightly darker shade for deeper gradient */
   --color-card: #1C2238; /* Lighter navy for cards */
   --color-accent: var(--color-brand-orange);
   --color-accent-hover: var(--color-brand-orange-dark);
   --color-text-primary: #FFFFFF; /* White for contrast */
   --color-text-secondary: #A0A0A0; /* Gray for secondary text */
-  --shadow-color: rgba(0, 0, 0, 0.3);
-  --shadow-hover: rgba(0, 0, 0, 0.5);
-  --card-glass: rgba(28, 34, 56, 0.85); /* Navy-tinted glassmorphism */
+  --shadow-color: rgba(0, 0, 0, 0.4); /* Increased shadow opacity for depth */
+  --shadow-hover: rgba(0, 0, 0, 0.6); /* Increased hover shadow opacity */
+  --card-glass: rgba(28, 34, 56, 0.7); /* Slightly reduced opacity for clearer glassmorphism */
   --gold: #FFD700; /* Leaderboard gold */
   --silver: #C0C0C0; /* Leaderboard silver */
   --bronze: #CD7F32; /* Leaderboard bronze */
@@ -45,7 +45,7 @@
   --color-text-secondary: #666666; /* Darker gray */
   --shadow-color: rgba(0, 0, 0, 0.1);
   --shadow-hover: rgba(0, 0, 0, 0.2);
-  --card-glass: rgba(255, 255, 255, 0.95);
+  --card-glass: rgba(255, 255, 255, 0.9); /* Slightly reduced opacity for clearer glassmorphism */
 }
 
 /* Base, HTML & Body */
@@ -102,30 +102,70 @@ body {
   top: 0;
   z-index: 10;
   min-height: 64px;
+  /* Added responsive flex-direction for smaller screens */
+  flex-direction: row; /* Default for larger screens */
+  flex-wrap: wrap; /* Allow wrapping of items */
+  gap: 10px; /* Space between brand and actions */
 }
 .App-header:hover, .App-header:focus-within {
   box-shadow: 0 6px 18px var(--shadow-hover);
   transform: translateY(-1px);
 }
-.App-header img {
-  height: 40px;
-  width: auto;
-  margin-right: 12px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+
+/* Navbar Brand Section */
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0; /* Allows content to shrink */
+  flex-shrink: 0; /* Prevents shrinking too much */
 }
-.App-header h1 {
+
+.navbar-brand img {
+  height: 40px; /* Adjusted height for full logo */
+  width: auto; /* Allow width to scale naturally */
+  border-radius: 0; /* Changed to 0 to show full logo, not circular */
+  box-shadow: none; /* Removed shadow on image for cleaner look with full logo */
+  flex-shrink: 0;
+}
+
+.navbar-brand .navbar-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  flex-grow: 1; /* Allows text to take available space */
+}
+
+.navbar-brand h1 {
   font-size: var(--font-size-header);
-  color: var(--color-accent);
+  color: var(--color-text-primary);
   margin: 0;
   letter-spacing: 0.5px;
-  outline: none;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  outline: none;
 }
-.last-updated {
+
+.navbar-brand p {
   font-size: 0.85rem;
   color: var(--color-text-secondary);
-  margin: 2px 0;
+  margin: 2px 0 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Navbar Actions Section */
+.navbar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap; /* Allow actions to wrap */
+  flex-grow: 1; /* Allow actions to take available space */
+  justify-content: flex-end; /* Push actions to the right */
 }
 
 /* Nav links/buttons row */
@@ -133,23 +173,50 @@ body {
   display: flex;
   gap: 8px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: wrap; /* Allow wrapping of nav links */
 }
 @media (max-width: 880px) {
-  .topbar-nav { gap: 6px; }
+  .App-header {
+    flex-direction: column; /* Stack logo and nav vertically */
+    align-items: flex-start; /* Align stacked items to the left */
+    gap: 15px; /* Increase gap between stacked sections */
+  }
+  .navbar-actions {
+    width: 100%; /* Take full width when stacked */
+    justify-content: center; /* Center actions when stacked */
+    gap: 6px; /* Adjust gap for smaller screens */
+  }
+  .topbar-nav {
+    justify-content: center; /* Center nav links when stacked */
+    width: 100%; /* Take full width */
+    gap: 6px; /* Adjust gap for smaller screens */
+  }
 }
 @media (max-width: 520px) {
+  .navbar-brand img { height: 32px; } /* Smaller logo on very small screens */
+  .navbar-brand h1 { font-size: 1rem !important; }
+  .navbar-brand p { font-size: 0.75rem; }
+
+  .navbar-actions {
+    flex-direction: column; /* Stack actions vertically */
+    align-items: stretch; /* Stretch buttons to full width */
+  }
   .topbar-nav {
     flex-direction: column;
     gap: 4px;
     align-items: stretch;
     width: 100%;
   }
+  .refresh-btn {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    min-width: 100%;
+  }
 }
 
 /* Buttons/Toolbar */
 .refresh-btn {
-  background: var(--color-accent);
+  background: var(--color-accent); /* All standard buttons use accent color */
   color: #fff !important;
   border: none;
   padding: 10px 16px;
@@ -161,7 +228,7 @@ body {
   min-width: 50px;
   min-height: 36px;
   line-height: 1.2;
-  transition: 
+  transition:
     background var(--transition-speed) ease,
     transform var(--transition-speed) ease,
     box-shadow var(--transition-speed) ease;
@@ -185,7 +252,7 @@ body {
 .refresh-btn:active { transform: translateY(0) scale(0.98); }
 .refresh-btn:focus-visible { outline: 2px solid var(--color-brand-blue-light); }
 .refresh-btn[aria-current="page"] {
-  background: var(--color-brand-blue-light);
+  background: var(--color-brand-blue-light); /* Active page button can still be different if desired, or change to accent */
   transform: scale(1.03);
 }
 .refresh-btn:disabled {
@@ -194,13 +261,31 @@ body {
   transform: none;
   box-shadow: none;
 }
-@media (max-width: 520px) {
-  .refresh-btn {
-    padding: 8px 12px;
-    font-size: 0.9rem;
-    min-width: 100%;
-  }
+/* All standard buttons use accent color, so specific variants can be simplified or removed if they are identical */
+.refresh-btn--primary { background-color: var(--color-accent); }
+.refresh-btn--primary:hover, .refresh-btn--primary:focus { background-color: var(--color-accent-hover); }
+
+/* These variants will now effectively inherit the default .refresh-btn styles unless overridden */
+.refresh-btn--secondary { background-color: var(--color-accent); } /* Changed to accent */
+.refresh-btn--secondary:hover, .refresh-btn--secondary:focus { background-color: var(--color-accent-hover); } /* Changed to accent-hover */
+
+.refresh-btn--accent { background-color: var(--color-accent); } /* Changed to accent */
+.refresh-btn--accent:hover, .refresh-btn--accent:focus { background-color: var(--color-accent-hover); } /* Changed to accent-hover */
+
+.refresh-btn--info { background-color: var(--color-accent); } /* Changed to accent */
+.refresh-btn--info:hover, .refresh-btn--info:focus { background-color: var(--color-accent-hover); } /* Changed to accent-hover */
+
+.refresh-btn--neutral { background-color: var(--color-accent); } /* Changed to accent */
+.refresh-btn--neutral:hover, .refresh-btn--neutral:focus { background-color: var(--color-accent-hover); } /* Changed to accent-hover */
+
+.refresh-btn--danger { background-color: #f44336; } /* Retains distinct red */
+.refresh-btn--danger:hover, .refresh-btn--danger:focus { background-color: #d32f2f; }
+
+/* Styling for the theme toggle icons */
+.refresh-btn--theme .icon {
+  color: var(--color-text-primary); /* Set icon color to primary text color for visibility */
 }
+
 
 /* Card & Dashboard Grid */
 .dashboard-stack {
@@ -220,6 +305,8 @@ body {
   padding: var(--card-padding);
   box-shadow: 0 4px 16px var(--shadow-color);
   transition: box-shadow var(--transition-speed) ease, transform var(--transition-speed) ease;
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border for glass effect */
+  flex-grow: 1; /* Allow cards to grow */
 }
 .card:hover, .card:focus-within {
   box-shadow: 0 8px 24px var(--shadow-hover);
@@ -238,23 +325,35 @@ h2, h1 {
 .icon {
   width: 22px;
   height: 22px;
-  color: var(--color-accent);
+  color: var(--color-accent); /* Default icon color (may be overridden) */
   transition: transform var(--transition-speed);
 }
 .icon:hover { transform: scale(1.15); }
 
 /* Metric/Leaderboard Cards */
-.metric-card { text-align: center; }
+.metric-card {
+  text-align: center;
+  flex: 1 1 280px; /* Allows cards to grow but maintain minimum width */
+  min-height: 120px; /* Ensures consistent card height */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.metric-card h2 { margin-bottom: 8px; } /* Adjusted margin */
 .metric-value {
   font-size: var(--font-size-large);
   font-weight: 700;
   margin-top: 12px;
   letter-spacing: 0.02em;
-  color: var(--color-brand-blue-light);
+  color: var(--color-text-primary); /* Changed to primary text color for consistency */
 }
 
 /* Chart & Table Area */
-.chart-card { padding: 16px 10px 20px 10px; }
+.chart-card {
+  padding: 16px 10px 20px 10px;
+  flex: 1 1 100%; /* Ensure charts take full width */
+}
 .recharts-wrapper { margin: 0 auto; }
 .recharts-text {
   fill: var(--color-text-primary) !important;
@@ -313,6 +412,7 @@ h2, h1 {
 }
 
 /* Leaderboard (Animated Tiers) */
+.leaderboard { flex: 1 1 300px; } /* Adjust flex-basis for better layout */
 .leaderboard ul { list-style: none; padding: 0; margin: 0; }
 .leaderboard li {
   background: rgba(255, 95, 0, 0.1); /* Orange-tinted background */
@@ -321,7 +421,9 @@ h2, h1 {
   border-radius: 6px;
   display: flex;
   justify-content: space-between;
+  align-items: center; /* Vertically align content */
   transition: background var(--transition-speed), transform var(--transition-speed), box-shadow var(--transition-speed);
+  border: 1px solid transparent; /* Added transparent border */
 }
 .leaderboard li:hover, .leaderboard li:focus {
   background: rgba(255, 95, 0, 0.2);
@@ -329,16 +431,39 @@ h2, h1 {
   box-shadow: 0 3px 10px var(--shadow-color);
   outline: 2px solid var(--color-accent-hover);
 }
-.leaderboard li.gold { background: rgba(255, 215, 0, 0.2) !important; font-weight: 700; }
-.leaderboard li.silver { background: rgba(192, 192, 192, 0.18) !important; font-weight: 700; }
-.leaderboard li.bronze { background: rgba(205, 127, 50, 0.15) !important; font-weight: 700; }
-@keyframes highlight {
-  0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.1); }
-  100% {
-    box-shadow: 0 0 12px 4px rgba(255, 215, 0, 0.15),
-      0 0 14px 6px rgba(192, 192, 192, 0.12),
-      0 0 12px 4px rgba(205, 127, 50, 0.12);
-  }
+.leaderboard li.gold {
+  background: rgba(255, 215, 0, 0.25) !important; /* Slightly more prominent background */
+  font-weight: 700;
+  border-color: var(--gold); /* Gold border */
+  animation: highlight-gold 1.5s ease-out forwards; /* Specific animation */
+}
+.leaderboard li.silver {
+  background: rgba(192, 192, 192, 0.2) !important; /* Slightly more prominent background */
+  font-weight: 700;
+  border-color: var(--silver); /* Silver border */
+  animation: highlight-silver 1.5s ease-out forwards;
+}
+.leaderboard li.bronze {
+  background: rgba(205, 127, 50, 0.18) !important; /* Slightly more prominent background */
+  font-weight: 700;
+  border-color: var(--bronze); /* Bronze border */
+  animation: highlight-bronze 1.5s ease-out forwards;
+}
+/* Keyframe animations for leaderboard */
+@keyframes highlight-gold {
+  0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.3); }
+  50% { box-shadow: 0 0 10px 4px rgba(255, 215, 0, 0.5); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+}
+@keyframes highlight-silver {
+  0% { box-shadow: 0 0 0 0 rgba(192, 192, 192, 0.3); }
+  50% { box-shadow: 0 0 10px 4px rgba(192, 192, 192, 0.5); }
+  100% { box-shadow: 0 0 0 0 rgba(192, 192, 192, 0); }
+}
+@keyframes highlight-bronze {
+  0% { box-shadow: 0 0 0 0 rgba(205, 127, 50, 0.3); }
+  50% { box-shadow: 0 0 10px 4px rgba(205, 127, 50, 0.5); }
+  100% { box-shadow: 0 0 0 0 rgba(205, 127, 50, 0); }
 }
 
 /* Tables & Responsive Data */
@@ -348,6 +473,7 @@ h2, h1 {
   border-radius: 6px;
   margin-top: 8px;
   background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Added border to table container */
 }
 .table-container table { width: 100%; border-collapse: collapse; }
 .table-container th, .table-container td {
@@ -359,9 +485,12 @@ h2, h1 {
 .table-container th {
   background: rgba(255, 255, 255, 0.08);
   font-weight: 600;
+  position: sticky; /* Keep headers sticky on scroll */
+  top: 0;
+  z-index: 1;
 }
 .table-container tr:nth-child(even) { background: rgba(255, 255, 255, 0.04); }
-.table-container tr:hover, .table-container tr:focus {
+.table-container tr:hover, .table-container tr:focus-within { /* focus-within for better accessibility */
   background: rgba(255, 255, 255, 0.15);
   transform: translateX(2px);
   outline: 2px solid var(--color-accent-hover);
@@ -402,6 +531,9 @@ h2, h1 {
 .movement {
   margin-left: 6px;
   font-size: 0.85rem;
+  display: inline-flex; /* Use flexbox for better alignment */
+  align-items: center;
+  gap: 3px; /* Space between arrow and number */
 }
 .movement-up { color: #4caf50; }
 .movement-down { color: #ff4444; }
@@ -409,10 +541,18 @@ h2, h1 {
 
 /* Rolling Months mini-cards */
 .rolling-months .month-card {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
+  background: var(--card-glass); /* Consistent with other cards */
+  backdrop-filter: blur(10px);
+  border-radius: var(--border-radius);
   padding: 16px;
   margin-bottom: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 8px var(--shadow-color); /* Added shadow */
+  transition: all var(--transition-speed) ease;
+}
+.rolling-months .month-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--shadow-hover);
 }
 .rolling-months .month-card h3 {
   margin: 0 0 8px 0;
@@ -458,6 +598,11 @@ h2, h1 {
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 16px;
+  align-items: center; /* Vertically align items */
+}
+.filter-controls label {
+  color: var(--color-text-secondary); /* Style labels */
+  font-size: 0.9rem;
 }
 select, input[type="text"], input[type="search"] {
   padding: 8px 12px;
@@ -466,7 +611,7 @@ select, input[type="text"], input[type="search"] {
   background: var(--color-card);
   color: var(--color-text-primary);
   font-size: 0.9rem;
-  width: 100%;
+  width: auto; /* Changed to auto to allow natural sizing within flex */
   box-sizing: border-box;
   transition: border-color var(--transition-speed), box-shadow var(--transition-speed), background var(--transition-speed);
 }
@@ -474,8 +619,8 @@ select:hover, input[type="text"]:hover, input[type="search"]:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 select:focus, input[type="text"]:focus, input[type="search"]:focus {
-  border-color: var(--color-brand-blue-light);
-  box-shadow: 0 0 6px rgba(26, 42, 90, 0.3);
+  border-color: var(--color-accent); /* Focus border color to accent */
+  box-shadow: 0 0 6px rgba(255, 95, 0, 0.3); /* Accent shadow on focus */
   outline: none;
 }
 @media (max-width: 880px) {
@@ -485,6 +630,7 @@ select:focus, input[type="text"]:focus, input[type="search"]:focus {
   select, input[type="text"], input[type="search"] {
     font-size: 0.85rem;
     padding: 6px 10px;
+    width: 100%; /* Force full width on small screens */
   }
 }
 
@@ -618,6 +764,7 @@ select:focus, input[type="text"]:focus, input[type="search"]:focus {
   max-width: 340px;
   width: 100%;
   text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border for glass effect */
 }
 .login-card h2 { margin-bottom: 16px; }
 .login-card .form-group { margin-bottom: 14px; text-align: left; }
@@ -655,6 +802,7 @@ select:focus, input[type="text"]:focus, input[type="search"]:focus {
   box-shadow: 0 3px 16px rgba(0, 0, 0, 0.4);
   max-width: 560px;
   width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border for glass effect */
 }
 .modal-content h2 { margin-top: 0; margin-bottom: 16px; }
 .modal-content button { margin-top: 12px; }
