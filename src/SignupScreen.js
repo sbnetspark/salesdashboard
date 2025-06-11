@@ -97,7 +97,7 @@ function SignupScreen({ onSwitchToLogin }) {
         <img
           src="/netspark-logo.png"
           alt="NetSpark Logo"
-          style={{ width: "200px", marginBottom: "20px" }}
+          className="navbar-logo"
         />
         <h2>Create a NetSpark Account</h2>
         <form onSubmit={handleSignup} autoComplete="on">
@@ -132,14 +132,13 @@ function SignupScreen({ onSwitchToLogin }) {
               ref={errorRef}
               tabIndex={-1}
               aria-live="assertive"
-              style={{ marginTop: "8px" }}
             >
               {error}
             </p>
           )}
           {success && (
             <p
-              style={{ color: "green", marginTop: "8px" }}
+              className="success"
               ref={successRef}
               tabIndex={-1}
               aria-live="polite"
@@ -151,7 +150,6 @@ function SignupScreen({ onSwitchToLogin }) {
             type="submit"
             className="refresh-btn"
             disabled={loading}
-            style={{ marginTop: "10px" }}
           >
             {loading ? "Creating account..." : "Sign Up"}
           </button>
@@ -160,8 +158,7 @@ function SignupScreen({ onSwitchToLogin }) {
           Already have an account?{" "}
           <button
             type="button"
-            className="refresh-btn"
-            style={{ backgroundColor: "#444" }}
+            className="refresh-btn refresh-btn--neutral"
             onClick={onSwitchToLogin}
             tabIndex={0}
           >

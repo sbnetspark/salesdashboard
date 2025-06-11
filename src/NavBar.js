@@ -1,3 +1,4 @@
+// src/NavBar.js
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
@@ -7,13 +8,14 @@ import { getUserRole, ROLES } from "./utils/getUserRole";
 import { SunIcon, MoonIcon } from "@heroicons/react/24/solid";
 import "./App.css";
 
-const NavBar = ({ user, theme, setTheme, deviceType }) => {
+const NavBar = ({ user, theme, setTheme }) => {
   const location = useLocation();
   const role = getUserRole(user?.email);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const [error, setError] = useState(null);
   const modalRef = useRef();
 
+  // Generate a display name from the email
   const displayName = user?.email
     ? user.email
         .split("@")[0]
@@ -33,6 +35,7 @@ const NavBar = ({ user, theme, setTheme, deviceType }) => {
     }
   };
 
+  // Close modal on Escape
   useEffect(() => {
     if (logoutModalOpen && modalRef.current) modalRef.current.focus();
   }, [logoutModalOpen]);
@@ -45,6 +48,7 @@ const NavBar = ({ user, theme, setTheme, deviceType }) => {
     }
   }, [logoutModalOpen]);
 
+  // Dashboard links (shown/hidden by role)
   const dashboardLinks = [
     { to: "/", label: "My Sales", show: true, variant: "primary" },
     { to: "/dashboard", label: "Team", show: true, variant: "secondary" },
@@ -66,10 +70,12 @@ const NavBar = ({ user, theme, setTheme, deviceType }) => {
   return (
     <header className="App-header">
       <div className="navbar-brand">
-        <img src="/netspark-logo.png" alt="NetSpark Logo" />
+        <Link to="/" tabIndex={0} aria-label="Go to My Sales Dashboard" className="navbar-logo-link">
+          <img src="/netspark-logo.png" alt="NetSpark Logo" className="navbar-logo" />
+        </Link>
         <div className="navbar-text">
           <h1 tabIndex={0}>Welcome, {displayName}</h1>
-          <p>Here's a summary of your sales performance...</p>
+          <p className="navbar-subtitle">Here's a summary of your sales performance...</p>
         </div>
       </div>
       <div className="navbar-actions">
@@ -88,6 +94,8 @@ const NavBar = ({ user, theme, setTheme, deviceType }) => {
             className="refresh-btn refresh-btn--danger"
             onClick={() => setLogoutModalOpen(true)}
             aria-label="Sign out"
+            title="Sign out"
+            type="button"
           >
             Logout
           </button>
@@ -97,6 +105,7 @@ const NavBar = ({ user, theme, setTheme, deviceType }) => {
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          type="button"
         >
           {theme === "dark" ? <SunIcon className="icon" /> : <MoonIcon className="icon" />}
         </button>
@@ -112,9 +121,9 @@ const NavBar = ({ user, theme, setTheme, deviceType }) => {
         <div className="modal-backdrop" role="dialog" aria-modal="true" tabIndex={-1} ref={modalRef}>
           <motion.div
             className="modal-content"
-            initial={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: 0.85 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.25 }}
           >
             <h2>Confirm Sign Out</h2>
             <p>Are you sure you want to sign out?</p>
@@ -123,6 +132,7 @@ const NavBar = ({ user, theme, setTheme, deviceType }) => {
                 className="refresh-btn refresh-btn--danger"
                 onClick={handleLogout}
                 aria-label="Confirm sign out"
+                type="button"
               >
                 Yes, Sign Out
               </button>
@@ -130,6 +140,7 @@ const NavBar = ({ user, theme, setTheme, deviceType }) => {
                 className="refresh-btn refresh-btn--neutral"
                 onClick={() => setLogoutModalOpen(false)}
                 aria-label="Cancel sign out"
+                type="button"
                 autoFocus
               >
                 Cancel

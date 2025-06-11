@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "./firebase";
 import NavBar from "./NavBar";
@@ -6,12 +6,7 @@ import { getUserRole, ROLES } from "./utils/getUserRole";
 import "./App.css";
 
 const AccountPage = ({ user, theme, setTheme }) => {
-  const handleLogout = () => {
-    // Add confirmation dialog for better UX
-    if (window.confirm("Are you sure you want to sign out?")) {
-      signOut(auth).catch((err) => console.error("Logout error:", err));
-    }
-  };
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
 
   // Derive display name from email
   const displayName = user?.email
@@ -27,6 +22,15 @@ const AccountPage = ({ user, theme, setTheme }) => {
   const roleDisplay = role === ROLES.EXECUTIVE ? "Executive" :
                      role === ROLES.MANAGER ? "Manager" :
                      role === ROLES.SELLER ? "Seller" : "Unknown";
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setLogoutModalOpen(false);
+    } catch (err) {
+      // Optionally handle/log error
+    }
+  };
 
   return (
     <div className="App">
@@ -49,8 +53,8 @@ const AccountPage = ({ user, theme, setTheme }) => {
             </div>
           </div>
           <button
-            className="refresh-btn sign-out-btn"
-            onClick={handleLogout}
+            className="refresh-btn refresh-btn--danger sign-out-btn"
+            onClick={() => setLogoutModalOpen(true)}
             aria-label="Sign out of your account"
           >
             Sign Out
@@ -62,6 +66,33 @@ const AccountPage = ({ user, theme, setTheme }) => {
           <p className="no-data">User activity summary coming soon.</p>
         </div>
       </div>
+
+      {/* Sign Out Modal */}
+      {logoutModalOpen && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" tabIndex={-1}>
+          <div className="modal-content">
+            <h2>Confirm Sign Out</h2>
+            <p>Are you sure you want to sign out?</p>
+            <div className="filter-controls">
+              <button
+                className="refresh-btn refresh-btn--danger"
+                onClick={handleLogout}
+                aria-label="Confirm sign out"
+              >
+                Yes, Sign Out
+              </button>
+              <button
+                className="refresh-btn refresh-btn--neutral"
+                onClick={() => setLogoutModalOpen(false)}
+                aria-label="Cancel sign out"
+                autoFocus
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

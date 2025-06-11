@@ -1,5 +1,5 @@
 // src/EmailVerifyScreen.js
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { auth } from "./firebase";
 import { sendEmailVerification, signOut } from "firebase/auth";
 import "./App.css";
@@ -17,7 +17,7 @@ function EmailVerifyScreen() {
   const successRef = useRef();
 
   // Focus feedback for accessibility
-  React.useEffect(() => {
+  useEffect(() => {
     if (sendError && errorRef.current) errorRef.current.focus();
     if (sendSuccess && successRef.current) successRef.current.focus();
   }, [sendError, sendSuccess]);
@@ -61,14 +61,14 @@ function EmailVerifyScreen() {
         <img
           src="/netspark-logo.png"
           alt="NetSpark Logo"
-          style={{ width: "200px", marginBottom: "20px" }}
+          className="navbar-logo"
         />
         <h2 tabIndex={0}>Please Verify Your Email</h2>
         <p>
           To use the <strong>NetSpark Sales Dashboard</strong>, you must verify your{" "}
           <strong>@netsparktelecom.com</strong> email.
         </p>
-        <p style={{ color: "#888" }}>
+        <p className="text-muted">
           Check your inbox for a verification link. After verifying,{" "}
           <strong>sign out and log in again.</strong>
           <br />
@@ -85,14 +85,13 @@ function EmailVerifyScreen() {
             ref={errorRef}
             tabIndex={-1}
             aria-live="assertive"
-            style={{ marginTop: "8px" }}
           >
             {sendError}
           </p>
         )}
         {sendSuccess && (
           <p
-            style={{ color: "green", marginTop: "8px" }}
+            className="success"
             ref={successRef}
             tabIndex={-1}
             aria-live="polite"
@@ -110,8 +109,8 @@ function EmailVerifyScreen() {
           {resendLoading ? "Sending..." : "Resend Verification Email"}
         </button>
         <button
-          className="refresh-btn"
-          style={{ marginTop: "10px", backgroundColor: "#f44336" }}
+          className="refresh-btn refresh-btn--danger"
+          style={{ marginTop: "10px" }}
           onClick={handleSignOut}
         >
           Sign Out

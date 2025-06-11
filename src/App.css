@@ -9,24 +9,24 @@
 
 /* Root Brand Palette */
 :root {
-  --color-brand-orange: #FF5F00; /* Primary orange from website */
-  --color-brand-orange-dark: #E65500; /* Darker orange for hover */
+  --color-brand-orange: #df631c; /* Primary orange from website */
+  --color-brand-orange-dark: #b34d11; /* Darker orange for hover */
   --color-brand-blue: #0C1228; /* Navy from website background */
-  --color-brand-blue-light: #1A2A5A; /* Lighter navy for accents */
+  --color-brand-blue-light: #587be2; /* Lighter navy for accents */
   --color-brand-gray: #A0A0A0; /* Secondary text */
-  --color-bg: #0C1228; /* Navy background */
-  --color-bg-gradient-end: #14171D; /* Adjusted to a slightly darker shade for deeper gradient */
-  --color-card: #1C2238; /* Lighter navy for cards */
+  --color-bg: #0C1228;
+  --color-bg-gradient-end: #14171D;
+  --color-card: #1C2238;
   --color-accent: var(--color-brand-orange);
   --color-accent-hover: var(--color-brand-orange-dark);
-  --color-text-primary: #FFFFFF; /* White for contrast */
-  --color-text-secondary: #A0A0A0; /* Gray for secondary text */
-  --shadow-color: rgba(0, 0, 0, 0.4); /* Increased shadow opacity for depth */
-  --shadow-hover: rgba(0, 0, 0, 0.6); /* Increased hover shadow opacity */
-  --card-glass: rgba(28, 34, 56, 0.7); /* Slightly reduced opacity for clearer glassmorphism */
-  --gold: #FFD700; /* Leaderboard gold */
-  --silver: #C0C0C0; /* Leaderboard silver */
-  --bronze: #CD7F32; /* Leaderboard bronze */
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #A0A0A0;
+  --shadow-color: rgba(0, 0, 0, 0.4);
+  --shadow-hover: rgba(0, 0, 0, 0.6);
+  --card-glass: rgba(28, 34, 56, 0.8); /* More solid for contrast */
+  --gold: #FFD700;
+  --silver: #C0C0C0;
+  --bronze: #dd7814;
   --font-family: 'Poppins', 'Inter', Arial, sans-serif;
   --font-size-base: 1rem;
   --font-size-header: 1.25rem;
@@ -38,14 +38,14 @@
 }
 
 :root[data-theme="light"] {
-  --color-bg: #F7F7F7; /* Light gray from website */
-  --color-bg-gradient-end: #E5E5E5; /* Subtle gradient */
-  --color-card: #FFFFFF; /* White cards */
-  --color-text-primary: #0C1228; /* Navy text */
-  --color-text-secondary: #666666; /* Darker gray */
+  --color-bg: #F7F7F7;
+  --color-bg-gradient-end: #E5E5E5;
+  --color-card: #FFFFFF;
+  --color-text-primary: #0C1228;
+  --color-text-secondary: #666666;
   --shadow-color: rgba(0, 0, 0, 0.1);
   --shadow-hover: rgba(0, 0, 0, 0.2);
-  --card-glass: rgba(255, 255, 255, 0.9); /* Slightly reduced opacity for clearer glassmorphism */
+  --card-glass: rgba(255, 255, 255, 0.95);
 }
 
 /* Base, HTML & Body */
@@ -102,10 +102,9 @@ body {
   top: 0;
   z-index: 10;
   min-height: 64px;
-  /* Added responsive flex-direction for smaller screens */
-  flex-direction: row; /* Default for larger screens */
-  flex-wrap: wrap; /* Allow wrapping of items */
-  gap: 10px; /* Space between brand and actions */
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 .App-header:hover, .App-header:focus-within {
   box-shadow: 0 6px 18px var(--shadow-hover);
@@ -117,26 +116,24 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  min-width: 0; /* Allows content to shrink */
-  flex-shrink: 0; /* Prevents shrinking too much */
-}
-
-.navbar-brand img {
-  height: 40px; /* Adjusted height for full logo */
-  width: auto; /* Allow width to scale naturally */
-  border-radius: 0; /* Changed to 0 to show full logo, not circular */
-  box-shadow: none; /* Removed shadow on image for cleaner look with full logo */
+  min-width: 0;
   flex-shrink: 0;
 }
-
+.navbar-logo-link { display: flex; align-items: center; }
+.navbar-logo {
+  height: 40px;
+  width: auto;
+  border-radius: 0;
+  box-shadow: none;
+  flex-shrink: 0;
+}
 .navbar-brand .navbar-text {
   display: flex;
   flex-direction: column;
   justify-content: center;
   min-width: 0;
-  flex-grow: 1; /* Allows text to take available space */
+  flex-grow: 1;
 }
-
 .navbar-brand h1 {
   font-size: var(--font-size-header);
   color: var(--color-text-primary);
@@ -148,8 +145,7 @@ body {
   text-overflow: ellipsis;
   outline: none;
 }
-
-.navbar-brand p {
+.navbar-brand .navbar-subtitle {
   font-size: 0.85rem;
   color: var(--color-text-secondary);
   margin: 2px 0 0 0;
@@ -163,9 +159,9 @@ body {
   display: flex;
   gap: 8px;
   align-items: center;
-  flex-wrap: wrap; /* Allow actions to wrap */
-  flex-grow: 1; /* Allow actions to take available space */
-  justify-content: flex-end; /* Push actions to the right */
+  flex-wrap: wrap;
+  flex-grow: 1;
+  justify-content: flex-end;
 }
 
 /* Nav links/buttons row */
@@ -173,50 +169,48 @@ body {
   display: flex;
   gap: 8px;
   align-items: center;
-  flex-wrap: wrap; /* Allow wrapping of nav links */
+  flex-wrap: wrap;
 }
 @media (max-width: 880px) {
   .App-header {
-    flex-direction: column; /* Stack logo and nav vertically */
-    align-items: flex-start; /* Align stacked items to the left */
-    gap: 15px; /* Increase gap between stacked sections */
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
   }
   .navbar-actions {
-    width: 100%; /* Take full width when stacked */
-    justify-content: center; /* Center actions when stacked */
-    gap: 6px; /* Adjust gap for smaller screens */
+    width: 100%;
+    justify-content: center;
+    gap: 6px;
   }
   .topbar-nav {
-    justify-content: center; /* Center nav links when stacked */
-    width: 100%; /* Take full width */
-    gap: 6px; /* Adjust gap for smaller screens */
+    justify-content: center;
+    width: 100%;
+    gap: 6px;
   }
 }
 @media (max-width: 520px) {
-  .navbar-brand img { height: 32px; } /* Smaller logo on very small screens */
+  .navbar-brand img { height: 32px; }
   .navbar-brand h1 { font-size: 1rem !important; }
-  .navbar-brand p { font-size: 0.75rem; }
+  .navbar-brand .navbar-subtitle { font-size: 0.75rem; }
+  .navbar-actions { flex-direction: column; align-items: stretch; }
+  .topbar-nav { flex-direction: column; gap: 4px; align-items: stretch; width: 100%; }
+  .refresh-btn { padding: 8px 12px; font-size: 0.9rem; min-width: 100%; }
+}
 
-  .navbar-actions {
-    flex-direction: column; /* Stack actions vertically */
-    align-items: stretch; /* Stretch buttons to full width */
-  }
-  .topbar-nav {
-    flex-direction: column;
-    gap: 4px;
-    align-items: stretch;
-    width: 100%;
-  }
-  .refresh-btn {
-    padding: 8px 12px;
-    font-size: 0.9rem;
-    min-width: 100%;
-  }
+/* --- Dropdowns: Always readable in dark/light --- */
+select, select option {
+  background: var(--color-card);
+  color: var(--color-text-primary);
+}
+:root[data-theme="light"] select,
+:root[data-theme="light"] select option {
+  background: #fff;
+  color: #0C1228;
 }
 
 /* Buttons/Toolbar */
 .refresh-btn {
-  background: var(--color-accent); /* All standard buttons use accent color */
+  background: var(--color-accent);
   color: #fff !important;
   border: none;
   padding: 10px 16px;
@@ -252,52 +246,40 @@ body {
 .refresh-btn:active { transform: translateY(0) scale(0.98); }
 .refresh-btn:focus-visible { outline: 2px solid var(--color-brand-blue-light); }
 .refresh-btn[aria-current="page"] {
-  background: var(--color-brand-blue-light); /* Active page button can still be different if desired, or change to accent */
+  background: var(--color-brand-blue-light);
   transform: scale(1.03);
 }
 .refresh-btn:disabled {
   background: #999;
+  color: #fff !important;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+  opacity: 0.7;
 }
-/* All standard buttons use accent color, so specific variants can be simplified or removed if they are identical */
+/* Button Variants */
 .refresh-btn--primary { background-color: var(--color-accent); }
 .refresh-btn--primary:hover, .refresh-btn--primary:focus { background-color: var(--color-accent-hover); }
-
-/* These variants will now effectively inherit the default .refresh-btn styles unless overridden */
-.refresh-btn--secondary { background-color: var(--color-accent); } /* Changed to accent */
-.refresh-btn--secondary:hover, .refresh-btn--secondary:focus { background-color: var(--color-accent-hover); } /* Changed to accent-hover */
-
-.refresh-btn--accent { background-color: var(--color-accent); } /* Changed to accent */
-.refresh-btn--accent:hover, .refresh-btn--accent:focus { background-color: var(--color-accent-hover); } /* Changed to accent-hover */
-
-.refresh-btn--info { background-color: var(--color-accent); } /* Changed to accent */
-.refresh-btn--info:hover, .refresh-btn--info:focus { background-color: var(--color-accent-hover); } /* Changed to accent-hover */
-
-.refresh-btn--neutral { background-color: var(--color-accent); } /* Changed to accent */
-.refresh-btn--neutral:hover, .refresh-btn--neutral:focus { background-color: var(--color-accent-hover); } /* Changed to accent-hover */
-
-.refresh-btn--danger { background-color: #f44336; } /* Retains distinct red */
+.refresh-btn--secondary { background-color: var(--color-accent); }
+.refresh-btn--secondary:hover, .refresh-btn--secondary:focus { background-color: var(--color-accent-hover); }
+.refresh-btn--accent { background-color: var(--color-accent); }
+.refresh-btn--accent:hover, .refresh-btn--accent:focus { background-color: var(--color-accent-hover); }
+.refresh-btn--info { background-color: var(--color-accent); }
+.refresh-btn--info:hover, .refresh-btn--info:focus { background-color: var(--color-accent-hover); }
+/* Real neutral button for "Cancel" and secondary actions */
+.refresh-btn--neutral { background-color: #555; color: #fff !important; }
+.refresh-btn--neutral:hover, .refresh-btn--neutral:focus { background-color: #444; }
+:root[data-theme="light"] .refresh-btn--neutral { background-color: #e0e0e0; color: #222 !important; }
+:root[data-theme="light"] .refresh-btn--neutral:hover { background-color: #d5d5d5; }
+/* Destructive button */
+.refresh-btn--danger { background-color: #f44336; }
 .refresh-btn--danger:hover, .refresh-btn--danger:focus { background-color: #d32f2f; }
-
-/* Styling for the theme toggle icons */
-.refresh-btn--theme .icon {
-  color: var(--color-text-primary); /* Set icon color to primary text color for visibility */
-}
-
+/* Theme toggle */
+.refresh-btn--theme .icon { color: var(--color-text-primary); }
 
 /* Card & Dashboard Grid */
-.dashboard-stack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--card-gap);
-}
-.card-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--card-gap);
-}
+.dashboard-stack { display: flex; flex-direction: column; gap: var(--card-gap); }
+.card-row { display: flex; flex-wrap: wrap; gap: var(--card-gap); }
 .card {
   background: var(--card-glass);
   backdrop-filter: blur(12px);
@@ -305,8 +287,8 @@ body {
   padding: var(--card-padding);
   box-shadow: 0 4px 16px var(--shadow-color);
   transition: box-shadow var(--transition-speed) ease, transform var(--transition-speed) ease;
-  border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border for glass effect */
-  flex-grow: 1; /* Allow cards to grow */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  flex-grow: 1;
 }
 .card:hover, .card:focus-within {
   box-shadow: 0 8px 24px var(--shadow-hover);
@@ -325,7 +307,7 @@ h2, h1 {
 .icon {
   width: 22px;
   height: 22px;
-  color: var(--color-accent); /* Default icon color (may be overridden) */
+  color: var(--color-accent);
   transition: transform var(--transition-speed);
 }
 .icon:hover { transform: scale(1.15); }
@@ -333,26 +315,26 @@ h2, h1 {
 /* Metric/Leaderboard Cards */
 .metric-card {
   text-align: center;
-  flex: 1 1 280px; /* Allows cards to grow but maintain minimum width */
-  min-height: 120px; /* Ensures consistent card height */
+  flex: 1 1 280px;
+  min-height: 120px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
 }
-.metric-card h2 { margin-bottom: 8px; } /* Adjusted margin */
+.metric-card h2 { margin-bottom: 8px; }
 .metric-value {
   font-size: var(--font-size-large);
   font-weight: 700;
   margin-top: 12px;
   letter-spacing: 0.02em;
-  color: var(--color-text-primary); /* Changed to primary text color for consistency */
+  color: var(--color-text-primary);
 }
 
 /* Chart & Table Area */
 .chart-card {
   padding: 16px 10px 20px 10px;
-  flex: 1 1 100%; /* Ensure charts take full width */
+  flex: 1 1 100%;
 }
 .recharts-wrapper { margin: 0 auto; }
 .recharts-text {
@@ -371,28 +353,18 @@ h2, h1 {
   transition: fill var(--transition-speed), transform var(--transition-speed);
 }
 .recharts-bar-rectangles .recharts-bar-rectangle:hover {
-  fill: #FF8A33; /* Lighter orange for hover */
+  fill: #FF8A33;
   transform: scale(1.08);
 }
 .recharts-line {
   stroke-width: 3;
   transition: stroke var(--transition-speed);
 }
-.recharts-line:hover {
-  stroke: var(--color-accent-hover);
-}
-.recharts-area {
-  transition: fill var(--transition-speed), opacity var(--transition-speed);
-}
-.recharts-area:hover {
-  opacity: 0.9;
-}
-.recharts-pie {
-  transition: fill var(--transition-speed), transform var(--transition-speed);
-}
-.recharts-pie:hover {
-  transform: scale(1.05);
-}
+.recharts-line:hover { stroke: var(--color-accent-hover); }
+.recharts-area { transition: fill var(--transition-speed), opacity var(--transition-speed); }
+.recharts-area:hover { opacity: 0.9; }
+.recharts-pie { transition: fill var(--transition-speed), transform var(--transition-speed); }
+.recharts-pie:hover { transform: scale(1.05); }
 @media (max-width: 880px) {
   .chart-card { padding: 12px 8px 16px 8px; }
 }
@@ -403,27 +375,22 @@ h2, h1 {
 }
 
 /* Month Over Month Chart */
-.month-over-month-chart .recharts-bar-rectangle {
-  fill: var(--color-brand-orange);
-}
-.month-over-month-chart .recharts-bar-rectangle:hover {
-  fill: var(--color-brand-orange-dark);
-  transform: scale(1.08);
-}
+.month-over-month-chart .recharts-bar-rectangle { fill: var(--color-brand-orange); }
+.month-over-month-chart .recharts-bar-rectangle:hover { fill: var(--color-brand-orange-dark); transform: scale(1.08); }
 
 /* Leaderboard (Animated Tiers) */
-.leaderboard { flex: 1 1 300px; } /* Adjust flex-basis for better layout */
+.leaderboard { flex: 1 1 300px; }
 .leaderboard ul { list-style: none; padding: 0; margin: 0; }
 .leaderboard li {
-  background: rgba(255, 95, 0, 0.1); /* Orange-tinted background */
+  background: rgba(255, 95, 0, 0.1);
   padding: 12px 16px;
   margin: 8px 0;
   border-radius: 6px;
   display: flex;
   justify-content: space-between;
-  align-items: center; /* Vertically align content */
+  align-items: center;
   transition: background var(--transition-speed), transform var(--transition-speed), box-shadow var(--transition-speed);
-  border: 1px solid transparent; /* Added transparent border */
+  border: 1px solid transparent;
 }
 .leaderboard li:hover, .leaderboard li:focus {
   background: rgba(255, 95, 0, 0.2);
@@ -432,24 +399,23 @@ h2, h1 {
   outline: 2px solid var(--color-accent-hover);
 }
 .leaderboard li.gold {
-  background: rgba(255, 215, 0, 0.25) !important; /* Slightly more prominent background */
+  background: rgba(255, 215, 0, 0.25) !important;
   font-weight: 700;
-  border-color: var(--gold); /* Gold border */
-  animation: highlight-gold 1.5s ease-out forwards; /* Specific animation */
+  border-color: var(--gold);
+  animation: highlight-gold 1.5s ease-out forwards;
 }
 .leaderboard li.silver {
-  background: rgba(192, 192, 192, 0.2) !important; /* Slightly more prominent background */
+  background: rgba(192, 192, 192, 0.2) !important;
   font-weight: 700;
-  border-color: var(--silver); /* Silver border */
+  border-color: var(--silver);
   animation: highlight-silver 1.5s ease-out forwards;
 }
 .leaderboard li.bronze {
-  background: rgba(205, 127, 50, 0.18) !important; /* Slightly more prominent background */
+  background: rgba(205, 127, 50, 0.18) !important;
   font-weight: 700;
-  border-color: var(--bronze); /* Bronze border */
+  border-color: var(--bronze);
   animation: highlight-bronze 1.5s ease-out forwards;
 }
-/* Keyframe animations for leaderboard */
 @keyframes highlight-gold {
   0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.3); }
   50% { box-shadow: 0 0 10px 4px rgba(255, 215, 0, 0.5); }
@@ -470,10 +436,11 @@ h2, h1 {
 .table-container {
   max-height: 400px;
   overflow-y: auto;
+  overflow-x: auto;
   border-radius: 6px;
   margin-top: 8px;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1); /* Added border to table container */
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 .table-container table { width: 100%; border-collapse: collapse; }
 .table-container th, .table-container td {
@@ -485,12 +452,12 @@ h2, h1 {
 .table-container th {
   background: rgba(255, 255, 255, 0.08);
   font-weight: 600;
-  position: sticky; /* Keep headers sticky on scroll */
+  position: sticky;
   top: 0;
   z-index: 1;
 }
 .table-container tr:nth-child(even) { background: rgba(255, 255, 255, 0.04); }
-.table-container tr:hover, .table-container tr:focus-within { /* focus-within for better accessibility */
+.table-container tr:hover, .table-container tr:focus-within {
   background: rgba(255, 255, 255, 0.15);
   transform: translateX(2px);
   outline: 2px solid var(--color-accent-hover);
@@ -510,7 +477,7 @@ h2, h1 {
   }
 }
 
-/* Progress Bar (for ManagementDashboard.js) */
+/* Progress Bar */
 .progress-bar {
   background-color: #444;
   width: 120px;
@@ -527,13 +494,13 @@ h2, h1 {
   transition: width var(--transition-speed) ease;
 }
 
-/* Movement Indicators (for ManagementDashboard.js) */
+/* Movement Indicators */
 .movement {
   margin-left: 6px;
   font-size: 0.85rem;
-  display: inline-flex; /* Use flexbox for better alignment */
+  display: inline-flex;
   align-items: center;
-  gap: 3px; /* Space between arrow and number */
+  gap: 3px;
 }
 .movement-up { color: #4caf50; }
 .movement-down { color: #ff4444; }
@@ -541,13 +508,13 @@ h2, h1 {
 
 /* Rolling Months mini-cards */
 .rolling-months .month-card {
-  background: var(--card-glass); /* Consistent with other cards */
+  background: var(--card-glass);
   backdrop-filter: blur(10px);
   border-radius: var(--border-radius);
   padding: 16px;
   margin-bottom: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 2px 8px var(--shadow-color); /* Added shadow */
+  box-shadow: 0 2px 8px var(--shadow-color);
   transition: all var(--transition-speed) ease;
 }
 .rolling-months .month-card:hover {
@@ -598,10 +565,10 @@ h2, h1 {
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 16px;
-  align-items: center; /* Vertically align items */
+  align-items: center;
 }
 .filter-controls label {
-  color: var(--color-text-secondary); /* Style labels */
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
 }
 select, input[type="text"], input[type="search"] {
@@ -611,7 +578,7 @@ select, input[type="text"], input[type="search"] {
   background: var(--color-card);
   color: var(--color-text-primary);
   font-size: 0.9rem;
-  width: auto; /* Changed to auto to allow natural sizing within flex */
+  width: auto;
   box-sizing: border-box;
   transition: border-color var(--transition-speed), box-shadow var(--transition-speed), background var(--transition-speed);
 }
@@ -619,8 +586,8 @@ select:hover, input[type="text"]:hover, input[type="search"]:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 select:focus, input[type="text"]:focus, input[type="search"]:focus {
-  border-color: var(--color-accent); /* Focus border color to accent */
-  box-shadow: 0 0 6px rgba(255, 95, 0, 0.3); /* Accent shadow on focus */
+  border-color: var(--color-accent);
+  box-shadow: 0 0 6px rgba(255, 95, 0, 0.3);
   outline: none;
 }
 @media (max-width: 880px) {
@@ -630,7 +597,7 @@ select:focus, input[type="text"]:focus, input[type="search"]:focus {
   select, input[type="text"], input[type="search"] {
     font-size: 0.85rem;
     padding: 6px 10px;
-    width: 100%; /* Force full width on small screens */
+    width: 100%;
   }
 }
 
@@ -689,6 +656,16 @@ select:focus, input[type="text"]:focus, input[type="search"]:focus {
 .loader { background: rgba(255, 255, 255, 0.12); color: var(--color-accent); }
 .error { background: rgba(255, 66, 66, 0.15); color: #ff6666; }
 .no-data { background: rgba(255, 255, 255, 0.12); }
+.success {
+  background: rgba(76,175,80,0.13);
+  color: #4caf50;
+  padding: 12px 20px;
+  border-radius: 8px;
+  margin: 8px 0;
+  width: 100%;
+  text-align: left;
+  font-weight: 500;
+}
 .update-notification {
   text-align: center;
   padding: 10px;
@@ -745,14 +722,16 @@ select:focus, input[type="text"]:focus, input[type="search"]:focus {
   to { transform: rotate(360deg); }
 }
 
-/* Login Modal */
+/* --- Login Modal: Perfect vertical/horizontal centering --- */
 .login-gate {
   position: fixed;
   inset: 0;
   background: var(--color-bg);
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
+  min-height: 100vh;
   z-index: 31;
 }
 .login-card {
@@ -763,8 +742,12 @@ select:focus, input[type="text"]:focus, input[type="search"]:focus {
   box-shadow: 0 4px 20px var(--shadow-color);
   max-width: 340px;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border for glass effect */
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 .login-card h2 { margin-bottom: 16px; }
 .login-card .form-group { margin-bottom: 14px; text-align: left; }
@@ -782,6 +765,8 @@ select:focus, input[type="text"]:focus, input[type="search"]:focus {
   color: var(--color-text-primary);
   font-size: 0.9rem;
 }
+.login-card .error { margin: 8px 0; width: 100%; text-align: left; }
+.login-card .success { margin: 8px 0; width: 100%; text-align: left; }
 
 /* Modal Drilldown */
 .modal-backdrop {
@@ -802,7 +787,27 @@ select:focus, input[type="text"]:focus, input[type="search"]:focus {
   box-shadow: 0 3px 16px rgba(0, 0, 0, 0.4);
   max-width: 560px;
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border for glass effect */
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 .modal-content h2 { margin-top: 0; margin-bottom: 16px; }
 .modal-content button { margin-top: 12px; }
+
+/* --- PRINT STYLES --- */
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .card, .App-header, .navbar-actions, .navbar-brand {
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+  .card { border: 1px solid #ccc !important; }
+  .sales-table th, .sales-table td {
+    color: #000 !important;
+    background: #fff !important;
+    border: 1px solid #ccc !important;
+  }
+  .navbar-brand h1, .navbar-brand p { color: #000 !important; }
+  .refresh-btn, .refresh-btn:visited { color: #000 !important; background: #fff !important; }
+}

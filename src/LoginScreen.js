@@ -66,7 +66,7 @@ function LoginScreen({ onSwitchToSignup }) {
         <img
           src="/netspark-logo.png"
           alt="NetSpark Logo"
-          style={{ width: "200px", marginBottom: "20px" }}
+          className="navbar-logo"
         />
         <h2>NetSpark Dashboard Login</h2>
         <form onSubmit={handleLogin} autoComplete="on">
@@ -101,7 +101,6 @@ function LoginScreen({ onSwitchToSignup }) {
               ref={errorRef}
               tabIndex={-1}
               aria-live="assertive"
-              style={{ marginTop: "8px" }}
             >
               {error}
             </p>
@@ -110,7 +109,6 @@ function LoginScreen({ onSwitchToSignup }) {
             type="submit"
             className="refresh-btn"
             disabled={loading}
-            style={{ marginTop: "10px" }}
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
@@ -119,8 +117,7 @@ function LoginScreen({ onSwitchToSignup }) {
           Don&apos;t have an account?{" "}
           <button
             type="button"
-            className="refresh-btn"
-            style={{ backgroundColor: "#444" }}
+            className="refresh-btn refresh-btn--neutral"
             onClick={onSwitchToSignup}
             tabIndex={0}
           >

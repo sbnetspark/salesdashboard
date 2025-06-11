@@ -32,6 +32,8 @@ function AppRouter({ user, theme, setTheme }) {
           <Route path="/" element={<SellerLandingPage user={user} theme={theme} setTheme={setTheme} />} />
           <Route path="/dashboard" element={<Dashboard user={user} theme={theme} setTheme={setTheme} />} />
           <Route path="/account" element={<AccountPage user={user} theme={theme} setTheme={setTheme} />} />
+          <Route path="/management" element={<Navigate to="/" replace />} />
+          <Route path="/executive" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </>
       )}
@@ -39,7 +41,7 @@ function AppRouter({ user, theme, setTheme }) {
         <>
           <Route path="/" element={<SellerLandingPage user={user} theme={theme} setTheme={setTheme} />} />
           <Route path="/dashboard" element={<Dashboard user={user} theme={theme} setTheme={setTheme} />} />
-          <Route path="/management" element={<ManagementDashboard user={user} theme={theme} setTheme={setTheme} />} />
+          <Route path="/management" element={<ManagementDashboard theme={theme} setTheme={setTheme} />} />
           <Route path="/account" element={<AccountPage user={user} theme={theme} setTheme={setTheme} />} />
           <Route path="/executive" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -49,8 +51,8 @@ function AppRouter({ user, theme, setTheme }) {
         <>
           <Route path="/" element={<SellerLandingPage user={user} theme={theme} setTheme={setTheme} />} />
           <Route path="/dashboard" element={<Dashboard user={user} theme={theme} setTheme={setTheme} />} />
-          <Route path="/management" element={<ManagementDashboard user={user} theme={theme} setTheme={setTheme} />} />
-          <Route path="/executive" element={<ExecutiveDashboard user={user} theme={theme} setTheme={setTheme} />} />
+          <Route path="/management" element={<ManagementDashboard theme={theme} setTheme={setTheme} />} />
+          <Route path="/executive" element={<ExecutiveDashboard theme={theme} setTheme={setTheme} />} />
           <Route path="/account" element={<AccountPage user={user} theme={theme} setTheme={setTheme} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </>
@@ -59,9 +61,11 @@ function AppRouter({ user, theme, setTheme }) {
       <Route
         path="*"
         element={
-          <main style={{ padding: 20 }}>
-            <h2 tabIndex={0}>Access Denied</h2>
-            <p>Contact IT for access.</p>
+          <main className="login-gate" role="main" aria-label="Access Denied">
+            <div className="login-card" tabIndex={0}>
+              <h2>Access Denied</h2>
+              <p className="error">You do not have access to this dashboard.<br />Contact IT for assistance.</p>
+            </div>
           </main>
         }
       />
@@ -138,9 +142,10 @@ function App() {
   if (emailDomainError) {
     return (
       <main className="login-gate" role="main" aria-label="Blocked - Email Domain">
-        <div className="login-card">
-          <p className="error" tabIndex={0}>{emailDomainError}</p>
-          <button className="refresh-btn" onClick={() => signOut(auth)} autoFocus>
+        <div className="login-card" tabIndex={0}>
+          <h2>Access Blocked</h2>
+          <p className="error">{emailDomainError}</p>
+          <button className="refresh-btn refresh-btn--danger" onClick={() => signOut(auth)} autoFocus>
             Sign Out & Retry
           </button>
         </div>

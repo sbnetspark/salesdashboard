@@ -1,56 +1,49 @@
 // src/SellerLandingPage.js
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { db } from "./firebase";
 import { collection, getDocs } from "firebase/firestore";
 import "./App.css";
-import { Link } from "react-router-dom";
-import { getUserRole, ROLES } from "./utils/getUserRole";
 import NavBar from "./NavBar";
 import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  Line,
   XAxis,
   YAxis,
   Tooltip,
   CartesianGrid,
-} from "recharts"; // Added Recharts components
+  Legend,
+} from "recharts";
 
+// --- Brand Utility ---
 function formatCurrency(val) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val || 0);
 }
 
-const MONTH_ORDER = [ // Defined MONTH_ORDER for consistent month sorting
+const MONTH_ORDER = [
   "January","February","March","April","May","June","July","August",
   "September","October","November","December"
 ];
-
-function getCurrentMonthYear() {
+const getAll2025Months = () => MONTH_ORDER.map((m) => `${m} 2025`);
+const getCurrentMonthYear = () => {
   const now = new Date();
-  const months = [
-    "January","February","March","April","May","June","July","August",
-    "September","October","November","December"
-  ];
-  return `${months[now.getMonth()]} ${now.getFullYear()}`;
-}
+  return `${MONTH_ORDER[now.getMonth()]} ${now.getFullYear()}`;
+};
 
-// Utility to get past months for the chart
-function getPastMonths(numMonths) {
-  const months = [];
-  const now = new Date();
-  for (let i = 0; i < numMonths; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.unshift(`${MONTH_ORDER[d.getMonth()]} ${d.getFullYear()}`);
-  }
-  return months;
-}
+// --- Bar Colors (use CSS vars if possible)
+const BRAND_BLUE   = "var(--color-brand-blue-light)";
+const BRAND_ORANGE = "var(--color-brand-orange)";
+const BRAND_GREEN  = "var(--color-brand-green, #00c853)";
 
+// --- Main Component ---
 const SellerLandingPage = ({ user, theme, setTheme }) => {
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedSale, setSelectedSale] = useState(null); // State for selected sale detail
-  const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
+  const [selectedSale, setSelectedSale] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const closeBtnRef = useRef();
 
   useEffect(() => {
     (async () => {
@@ -85,35 +78,44 @@ const SellerLandingPage = ({ user, theme, setTheme }) => {
     [sales, currentMonth]
   );
 
-  // Prepare data for Month-over-Month chart
+  // Always show Jan–Dec 2025, even if sales missing.
+  // Group by wireline/wireless, and sum total.
   const monthlySalesData = useMemo(() => {
-    const past12Months = getPastMonths(12);
-    const aggregated = {};
-    past12Months.forEach(month => {
-      aggregated[month] = 0;
-    });
+    const months = getAll2025Months();
+    const result = months.map(month => ({
+      month: month.split(' ')[0], // Jan, Feb, etc.
+      wireline: 0,
+      wireless: 0,
+      total: 0,
+    }));
+
+    // Build month index for lookup
+    const monthIndex = {};
+    months.forEach((m, i) => { monthIndex[m] = i; });
 
     sales.forEach(s => {
-      if (past12Months.includes(s.Month)) {
-        aggregated[s.Month] += s.MRC || 0;
-      }
+      const idx = monthIndex[s.Month];
+      if (typeof idx !== "number") return;
+      const isWireline = s.Type && s.Type.toLowerCase().includes("wireline");
+      const mrc = s.MRC || 0;
+      if (isWireline) result[idx].wireline += mrc;
+      else result[idx].wireless += mrc;
+      result[idx].total += mrc;
     });
-
-    return past12Months.map(month => ({
-      month: month.split(' ')[0], // Just show month name for chart
-      MRC: aggregated[month],
-    }));
+    return result;
   }, [sales]);
 
   const handleRowClick = (sale) => {
     setSelectedSale(sale);
     setIsModalOpen(true);
   };
-
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedSale(null);
   };
+  useEffect(() => {
+    if (isModalOpen && closeBtnRef.current) closeBtnRef.current.focus();
+  }, [isModalOpen]);
 
   if (loading) return <div className="loader">Loading your sales...</div>;
   if (error) return <div className="error">{error}</div>;
@@ -135,20 +137,54 @@ const SellerLandingPage = ({ user, theme, setTheme }) => {
 
         {/* Month-over-Month Sales Chart */}
         <div className="card chart-card fade-in">
-          <h2>Monthly Sales Performance (MRC)</h2>
+          <h2 style={{ color: "var(--color-brand-orange)" }}>
+            <span style={{ verticalAlign: "middle", marginRight: 6 }}>
+              <svg width="20" height="20" viewBox="0 0 20 20" style={{ display: 'inline', verticalAlign: 'middle' }}>
+                <rect width="20" height="20" fill="currentColor" />
+              </svg>
+            </span>
+            Total Revenue for Month
+          </h2>
           <div style={{ width: '100%', height: 300 }}>
             <ResponsiveContainer>
-              <BarChart data={monthlySalesData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <BarChart
+                data={monthlySalesData}
+                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" stroke="var(--color-text-secondary)" fontSize={12} />
                 <YAxis stroke="var(--color-text-secondary)" fontSize={12} tickFormatter={formatCurrency} />
                 <Tooltip
-                  formatter={(value) => formatCurrency(value)}
+                  formatter={(value, name) =>
+                    [formatCurrency(value),
+                      name === "wireline"
+                        ? "Wireline MRC"
+                        : name === "wireless"
+                        ? "Wireless (Mobility) MRC"
+                        : name === "total"
+                        ? "Total"
+                        : name]}
                   labelStyle={{ color: '#000' }}
-                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.9)', border: '1px solid #999' }}
+                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.93)', border: '1px solid #999' }}
                   itemStyle={{ color: '#000' }}
                 />
-                <Bar dataKey="MRC" fill="var(--color-accent)" name="Monthly MRC" />
+                <Legend
+                  verticalAlign="top"
+                  wrapperStyle={{ color: "var(--color-text-primary)", fontSize: "0.92rem" }}
+                />
+                {/* Stacked bars: wireline, wireless */}
+                <Bar dataKey="wireline" stackId="mrc" name="Wireline MRC" fill={BRAND_BLUE} />
+                <Bar dataKey="wireless" stackId="mrc" name="Wireless (Mobility) MRC" fill={BRAND_ORANGE} />
+                {/* Green total revenue line */}
+                <Line
+                  type="monotone"
+                  dataKey="total"
+                  name="Total Revenue"
+                  stroke={BRAND_GREEN}
+                  strokeWidth={3}
+                  dot={{ r: 4, stroke: BRAND_GREEN, fill: BRAND_GREEN }}
+                  legendType="line"
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -168,7 +204,13 @@ const SellerLandingPage = ({ user, theme, setTheme }) => {
               </thead>
               <tbody>
                 {[...sales].reverse().slice(0, 20).map((s, i) => (
-                  <tr key={i} onClick={() => handleRowClick(s)} style={{ cursor: 'pointer' }}>
+                  <tr
+                    key={i}
+                    onClick={() => handleRowClick(s)}
+                    className="sales-table-row"
+                    tabIndex={0}
+                    aria-label={`View sale details for ${s.Customer || "Customer"}, ${s.Month}`}
+                  >
                     <td>{s.Month}</td>
                     <td>{formatCurrency(s.MRC)}</td>
                     <td>{s.Type}</td>
@@ -213,7 +255,12 @@ const SellerLandingPage = ({ user, theme, setTheme }) => {
                 </div>
               )}
             </div>
-            <button className="refresh-btn" onClick={closeModal} autoFocus>
+            <button
+              className="refresh-btn refresh-btn--neutral"
+              onClick={closeModal}
+              autoFocus
+              ref={closeBtnRef}
+            >
               Close
             </button>
           </div>

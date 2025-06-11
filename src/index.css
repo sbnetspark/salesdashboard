@@ -16,6 +16,9 @@
   --font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   --color-accent: #FF5F00; /* Primary orange from website */
   --color-accent-hover: #E65500; /* Darker orange for hover */
+  --color-bg: #0C1228;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #A0A0A0;
 }
 
 /* 3. Body Reset */
@@ -26,8 +29,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  background: var(--color-bg, #0C1228);
-  color: var(--color-text-primary, #FFFFFF);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
   min-height: 100vh;
   line-height: 1.6;
   letter-spacing: 0.01em;
@@ -64,10 +67,10 @@ code {
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-bg, #0C1228);
+  background: var(--color-bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-text-secondary, #A0A0A0);
+  background: var(--color-text-secondary);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
@@ -76,7 +79,7 @@ code {
 /* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-text-secondary, #A0A0A0) var(--color-bg, #0C1228);
+  scrollbar-color: var(--color-text-secondary) var(--color-bg);
 }
 
 /* 7. Remove outline only for mouse users, keep for keyboard users (accessibility) */
@@ -147,4 +150,10 @@ button:hover, button:focus {
 button:disabled {
   background: #999;
   cursor: not-allowed;
+}
+
+/* 14. Extra: ensure .text-muted class is available (for subtle muted text) */
+.text-muted {
+  color: var(--color-text-secondary);
+  font-size: 0.93rem;
 }

@@ -129,15 +129,6 @@ function TotalRevenueForMonth({ salesData }) {
       });
   }, [salesData]);
 
-  // Detect dark mode via document root class
-  const isDarkMode = useMemo(() => {
-    if (typeof window !== "undefined") {
-      return document.documentElement.classList.contains("dark") ||
-        window.matchMedia('(prefers-color-scheme: dark)').matches;
-    }
-    return false;
-  }, []);
-
   return (
     <div className="card chart-card" tabIndex={0} aria-label="Total Revenue for Month with Wireline, Wireless, and Total MRC">
       <h2>
@@ -154,9 +145,9 @@ function TotalRevenueForMonth({ salesData }) {
             tick={{ fontWeight: 600 }}
           />
           <YAxis
-            stroke={isDarkMode ? "#fff" : "#111"}
+            stroke="var(--color-text-primary)"
             fontSize={15}
-            tick={{ fontWeight: 700, fill: isDarkMode ? "#fff" : "#111" }}
+            tick={{ fontWeight: 700, fill: "var(--color-text-primary)" }}
             tickFormatter={formatCurrency}
             width={100}
             interval="preserveStartEnd"
@@ -227,17 +218,10 @@ function SellerCurrentMonthDetailed({ salesData }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState(null);
   const [sellerSales, setSellerSales] = useState([]);
-  const modalRef = useRef();
+  const closeBtnRef = useRef();
 
   useEffect(() => {
-    if (modalOpen && modalRef.current) modalRef.current.focus();
-  }, [modalOpen]);
-
-  useEffect(() => {
-    if (!modalOpen) return;
-    const handler = (e) => { if (e.key === "Escape") setModalOpen(false); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    if (modalOpen && closeBtnRef.current) closeBtnRef.current.focus();
   }, [modalOpen]);
 
   const filteredSellers = useMemo(() => {
@@ -308,8 +292,8 @@ function SellerCurrentMonthDetailed({ salesData }) {
       <h2>
         <ChartBarIcon className="icon" /> Current Month Sales ({currentMonthYear})
       </h2>
-      <div className="controls" style={{ marginBottom: "10px", flexWrap: "wrap" }}>
-        <div className="filters">
+      <div className="controls">
+        <div className="filter-controls">
           <label htmlFor="filter-seller">Filter Seller:</label>
           <input
             id="filter-seller"
@@ -317,31 +301,14 @@ function SellerCurrentMonthDetailed({ salesData }) {
             value={sellerFilter}
             onChange={(e) => setSellerFilter(e.target.value)}
             placeholder="Type seller name..."
-            style={{
-              marginLeft: "5px",
-              padding: "5px",
-              borderRadius: "6px",
-              border: "1px solid var(--color-brand-gray)",
-              minWidth: 80,
-              background: "var(--color-card)",
-              color: "var(--color-text-primary)",
-            }}
           />
         </div>
-        <div className="sort" style={{ marginLeft: 10 }}>
+        <div className="filter-controls">
           <label htmlFor="cm-sort">Sort By:</label>
           <select
             id="cm-sort"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            style={{
-              marginLeft: 5,
-              padding: "5px",
-              borderRadius: "6px",
-              border: "1px solid var(--color-brand-gray)",
-              background: "var(--color-card)",
-              color: "var(--color-text-primary)",
-            }}
           >
             <option value="mrc">Total MRC (High to Low)</option>
             <option value="wireline">Wireline (High to Low)</option>
@@ -365,7 +332,7 @@ function SellerCurrentMonthDetailed({ salesData }) {
               <tr
                 key={seller.Seller}
                 onClick={() => handleSellerClick(seller.Seller)}
-                style={{ cursor: "pointer" }}
+                className="sales-table-row"
                 tabIndex={0}
                 aria-label={`Details for ${seller.Seller}`}
               >
@@ -399,7 +366,6 @@ function SellerCurrentMonthDetailed({ salesData }) {
         <div
           className="modal-backdrop"
           tabIndex={-1}
-          ref={modalRef}
           aria-modal="true"
           role="dialog"
         >
@@ -425,7 +391,12 @@ function SellerCurrentMonthDetailed({ salesData }) {
                 </tbody>
               </table>
             </div>
-            <button className="refresh-btn" onClick={closeModal} autoFocus>
+            <button
+              className="refresh-btn refresh-btn--neutral"
+              onClick={closeModal}
+              autoFocus
+              ref={closeBtnRef}
+            >
               Close
             </button>
           </div>
@@ -533,7 +504,7 @@ function Rolling4Months({ salesData }) {
         Total MRC per seller for the last four months.
       </p>
       <div style={{ display: "flex", alignItems: "center", marginBottom: "12px", flexWrap: "wrap" }}>
-        <div className="filter-controls" style={{ marginRight: 16 }}>
+        <div className="filter-controls">
           <label htmlFor="r4-filter-seller">Filter Seller:</label>
           <input
             id="r4-filter-seller"
@@ -541,16 +512,14 @@ function Rolling4Months({ salesData }) {
             value={sellerFilter}
             onChange={(e) => setSellerFilter(e.target.value)}
             placeholder="Type seller name..."
-            style={{ marginLeft: 5, padding: "5px", borderRadius: 6, border: "1px solid var(--color-brand-gray)" }}
           />
         </div>
-        <div className="filter-controls" style={{ marginRight: 16 }}>
+        <div className="filter-controls">
           <label htmlFor="r4-sort">Sort By:</label>
           <select
             id="r4-sort"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            style={{ marginLeft: 5, padding: "5px", borderRadius: 6, border: "1px solid var(--color-brand-gray)" }}
           >
             <option value="total">Overall Total (High to Low)</option>
             <option value="seller">Seller (A-Z)</option>
@@ -561,17 +530,7 @@ function Rolling4Months({ salesData }) {
         </div>
         <button
           className="refresh-btn"
-          style={{
-            padding: "7px 20px",
-            borderRadius: 7,
-            background: "var(--color-brand-orange, #ff6f32)",
-            color: "#fff",
-            fontWeight: 600,
-            border: "none",
-            cursor: "pointer",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
-            marginLeft: "auto"
-          }}
+          style={{ marginLeft: "auto" }}
           onClick={exportToCSV}
         >
           Export CSV
