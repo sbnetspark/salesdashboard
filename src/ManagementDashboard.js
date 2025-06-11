@@ -1,6 +1,6 @@
 // src/ManagementDashboard.js
 import React, { useEffect, useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import NavBar from "./NavBar";
 import { auth, db } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, getDocs } from "firebase/firestore";
@@ -18,6 +18,7 @@ import {
   BarChart,
   Bar,
   CartesianGrid,
+  Line,
 } from "recharts";
 import { ChartBarIcon } from "@heroicons/react/24/solid";
 import "./App.css";
@@ -44,28 +45,56 @@ function getEffectiveMRC(mrc, type) {
   if (type && type.toLowerCase().includes("upgrade")) return 15;
   return mrc;
 }
+const isDarkMode = () =>
+  typeof window !== "undefined"
+    ? document.documentElement.classList.contains("dark") ||
+      window.matchMedia('(prefers-color-scheme: dark)').matches
+    : false;
+
+// Custom Tooltip Component for Recharts
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="recharts-tooltip">
+        <p className="label">{`${label}`}</p>
+        {payload.map((entry, index) => (
+          <p key={`item-${index}`} style={{ color: entry.color }}>
+            {`${entry.name}: ${formatCurrency(entry.value)}`}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
 
 // --- Data Builders ---
 function buildMonthlyTrendData(salesData) {
   const months = getAll2025Months();
   const aggregator = {};
-  months.forEach((m) => { aggregator[m] = { wireline: 0, wireless: 0 }; });
+  months.forEach((m) => {
+    aggregator[m] = { wireline: 0, wireless: 0, total: 0 };
+  });
+
   salesData.forEach((sale) => {
     if (!sale.Month || !aggregator[sale.Month]) return;
     const eff = getEffectiveMRC(sale.MRC, sale.Type);
+    aggregator[sale.Month].total += eff;
     if (sale.Type?.toLowerCase().includes("wireline")) {
       aggregator[sale.Month].wireline += eff;
     } else {
       aggregator[sale.Month].wireless += eff;
     }
   });
+
   return months.map((m) => ({
     month: m,
     wireline: aggregator[m].wireline,
     wireless: aggregator[m].wireless,
-    total: aggregator[m].wireline + aggregator[m].wireless,
+    total: aggregator[m].total,
   }));
 }
+
 function buildWireMobBreakdown(salesData) {
   let wirelineSum = 0;
   let mobilitySum = 0;
@@ -83,6 +112,7 @@ function buildWireMobBreakdown(salesData) {
     { name: "Mobility", value: mobilitySum },
   ];
 }
+
 function buildRankForMonth(salesData, monthStr) {
   const aggregator = {};
   salesData.forEach((sale) => {
@@ -118,7 +148,7 @@ function buildSellerYTDTotals(salesData) {
   return ytdMap;
 }
 
-// --- Quota Data ---
+// --- Quota Data (Unchanged) ---
 const monthlyQuotas = [
   { Representative: "Adam Meyer", Quota: 0 },
   { Representative: "Alicha Gricher", Quota: 6250 },
@@ -224,48 +254,7 @@ function ManagementDashboard() {
 
   return (
     <div className="App" style={{ padding: window.innerWidth < 700 ? 7 : 22, maxWidth: 1280 }}>
-      <header className="App-header" style={{
-        padding: window.innerWidth < 600 ? "9px 10px" : "14px 18px",
-        marginBottom: window.innerWidth < 600 ? 13 : 24,
-        gap: window.innerWidth < 600 ? 7 : 16
-      }}>
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: window.innerWidth < 700 ? 9 : 18,
-          minWidth: 0
-        }}>
-          <img src="/netspark-logo.png" alt="NetSpark Logo" style={{
-            height: window.innerWidth < 600 ? 34 : 44,
-            width: "auto",
-            marginRight: 4
-          }} />
-          <h1 tabIndex={0} style={{
-            fontSize: window.innerWidth < 700 ? "1.07rem" : "1.34rem",
-            margin: 0,
-            lineHeight: 1.22
-          }}>Management Dashboard (2025)</h1>
-        </div>
-        <nav style={{
-          display: "flex",
-          gap: window.innerWidth < 500 ? 2 : 9,
-          flexWrap: "wrap",
-          alignItems: "center"
-        }}>
-          <Link
-            to="/"
-            className="refresh-btn"
-            style={{
-              backgroundColor: "#9c27b0",
-              padding: window.innerWidth < 500 ? "7px 10px" : undefined,
-              fontSize: window.innerWidth < 500 ? "0.99em" : undefined
-            }}
-          >
-            ← Main
-          </Link>
-        </nav>
-      </header>
-
+      <NavBar user={user} />
       {error && (
         <p className="error" style={{ color: "red" }}>
           {error}
@@ -295,53 +284,60 @@ function ManagementDashboard() {
         <div style={{ width: "100%", height: 300 }}>
           <ResponsiveContainer>
             <AreaChart data={monthlyTrend} margin={{ top: 10, right: 20, bottom: 0, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
               <XAxis
                 dataKey="month"
-                stroke="#fff"
-                tick={{ fill: "#fff" }}
-                fontSize={12}
+                stroke="var(--color-text-primary)"
+                tick={{ fill: "var(--color-text-primary)", fontWeight: 600 }}
+                fontSize={14}
               />
               <YAxis
-                stroke="#fff"
-                tick={{ fill: "#fff" }}
-                fontSize={12}
+                stroke={isDarkMode() ? "#fff" : "#222"}
+                tick={{
+                  fill: isDarkMode() ? "#fff" : "#222",
+                  fontWeight: 700,
+                  fontSize: 15
+                }}
+                fontSize={15}
                 tickFormatter={formatCurrency}
+                width={100}
+                allowDecimals={false}
+                domain={[0, "auto"]}
               />
               <Tooltip
-                formatter={formatCurrency}
+                content={<CustomTooltip />}
                 labelStyle={{ color: "#000" }}
                 contentStyle={{
-                  backgroundColor: "rgba(255,255,255,0.9)",
-                  border: "1px solid #999",
+                  backgroundColor: "rgba(255,255,255,0.92)",
+                  border: "1px solid var(--color-accent)",
+                  borderRadius: "7px",
                 }}
                 itemStyle={{ color: "#000" }}
               />
-              <Legend wrapperStyle={{ color: "#fff", fontSize: "0.92rem" }} />
-              <Area
-                type="monotone"
-                dataKey="wireline"
-                stackId="1"
-                stroke="#ff6f32"
-                fill="#ff6f32"
-                name="Wireline"
-              />
+              <Legend wrapperStyle={{ color: "var(--color-text-primary)", fontSize: "0.92rem" }} />
               <Area
                 type="monotone"
                 dataKey="wireless"
-                stackId="1"
-                stroke="#00bfff"
-                fill="#00bfff"
-                name="Wireless"
+                stackId="a"
+                stroke="var(--color-brand-orange)"
+                fill="var(--color-brand-orange)"
+                name="Wireless (Mobility) MRC"
               />
               <Area
                 type="monotone"
+                dataKey="wireline"
+                stackId="a"
+                stroke="var(--color-brand-blue-light)"
+                fill="var(--color-brand-blue-light)"
+                name="Wireline MRC"
+              />
+              <Line
+                type="monotone"
                 dataKey="total"
-                stackId="2"
-                stroke="#4caf50"
-                fill="none"
+                stroke="var(--color-accent)"
                 strokeWidth={3}
-                name="Total"
+                dot={{ r: 4, stroke: 'var(--color-accent)', fill: 'var(--color-accent)' }}
+                name="Total MRC"
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -371,16 +367,17 @@ function ManagementDashboard() {
                 labelLine={false}
                 label={({ name, value }) => `${name}: ${formatCurrency(value)}`}
               >
-                <Cell fill="#ff6f32" />
-                <Cell fill="#00bfff" />
+                <Cell fill="var(--color-brand-blue-light)" />
+                <Cell fill="var(--color-brand-orange)" />
               </Pie>
-              <Legend wrapperStyle={{ color: "#fff", fontSize: "0.9rem" }} />
+              <Legend wrapperStyle={{ color: "var(--color-text-primary)", fontSize: "0.9rem" }} />
               <Tooltip
                 formatter={formatCurrency}
                 labelStyle={{ color: "#000" }}
                 contentStyle={{
-                  backgroundColor: "rgba(255,255,255,0.9)",
-                  border: "1px solid #999",
+                  backgroundColor: "rgba(255,255,255,0.92)",
+                  border: "1px solid var(--color-brand-blue-light)",
+                  borderRadius: "7px",
                 }}
                 itemStyle={{ color: "#000" }}
               />
@@ -409,8 +406,6 @@ function ManagementDashboard() {
     </div>
   );
 }
-
-// ----- Keep these components unchanged (as you already had) -----
 
 function SortableQuotaPerformance({
   data,
@@ -510,21 +505,11 @@ function SortableQuotaPerformance({
                   <td>{formatCurrency(rep.quota)}</td>
                   <td>{formatCurrency(rep.currentMRC)}</td>
                   <td>
-                    <div
-                      style={{
-                        backgroundColor: "#444",
-                        width: "120px",
-                        height: "8px",
-                        borderRadius: "4px",
-                        marginTop: "2px",
-                        overflow: "hidden",
-                      }}
-                    >
+                    <div className="progress-bar">
                       <div
+                        className="progress-fill"
                         style={{
-                          backgroundColor: "#ff6f32",
                           width: `${Math.min(pct, 100).toFixed(0)}%`,
-                          height: "100%",
                         }}
                       />
                     </div>
@@ -549,15 +534,20 @@ function StackRankYTD({ allMonthRanks, sortMonth, onSortMonthChange, sellerYTDTo
   });
   const allSellers = Array.from(allSellersSet);
 
-  if (sortMonth && allMonthRanks[sortMonth]) {
+  // Always sort by YTD rank if not sorting by a specific month
+  if (!sortMonth) {
+    allSellers.sort((a, b) => {
+      const aRank = (sellerYTDTotals[a]?.rank) || 9999;
+      const bRank = (sellerYTDTotals[b]?.rank) || 9999;
+      return aRank - bRank;
+    });
+  } else if (sortMonth && allMonthRanks[sortMonth]) {
     const ranksArr = allMonthRanks[sortMonth];
     const rankMap = {};
     ranksArr.forEach((r) => {
       rankMap[r.seller] = r.rank;
     });
     allSellers.sort((a, b) => (rankMap[a] || 9999) - (rankMap[b] || 9999));
-  } else {
-    allSellers.sort((a, b) => a.localeCompare(b));
   }
 
   if (!allSellers.length) return null;
@@ -579,7 +569,7 @@ function StackRankYTD({ allMonthRanks, sortMonth, onSortMonthChange, sellerYTDTo
             onChange={(e) => onSortMonthChange(e.target.value)}
             style={{ marginLeft: 6 }}
           >
-            <option value="">(Seller Name A-Z)</option>
+            <option value="">(YTD Rank)</option>
             {months.map((m) => (
               <option key={m} value={m}>
                 {m}
@@ -589,12 +579,14 @@ function StackRankYTD({ allMonthRanks, sortMonth, onSortMonthChange, sellerYTDTo
         </div>
       </div>
       <p>
-        Ranks by total MRC each month. Choose a month to reorder by that month’s rank.
+        <b>YTD Stack Rank is always the far left column and is sorted by YTD Rank by default.</b>
+        Choose a month to reorder by that month’s rank.
       </p>
       <div className="table-container" style={{ overflowX: "auto" }}>
         <table>
           <thead>
             <tr>
+              <th>YTD Rank</th>
               <th>Seller</th>
               {months.map((m) => (
                 <th key={m} style={{ textAlign: "center" }}>
@@ -602,7 +594,6 @@ function StackRankYTD({ allMonthRanks, sortMonth, onSortMonthChange, sellerYTDTo
                 </th>
               ))}
               <th style={{ textAlign: "center" }}>YTD MRC</th>
-              <th style={{ textAlign: "center" }}>YTD Rank</th>
             </tr>
           </thead>
           <tbody>
@@ -610,6 +601,7 @@ function StackRankYTD({ allMonthRanks, sortMonth, onSortMonthChange, sellerYTDTo
               const ytdData = sellerYTDTotals[seller] || { total: 0, rank: "—" };
               return (
                 <tr key={seller}>
+                  <td style={{ textAlign: "center", fontWeight: 700 }}>{ytdData.rank}</td>
                   <td>{seller}</td>
                   {months.map((m, idx) => {
                     const rankObj = (allMonthRanks[m] || []).find((r) => r.seller === seller);
@@ -636,15 +628,7 @@ function StackRankYTD({ allMonthRanks, sortMonth, onSortMonthChange, sellerYTDTo
                           {rank || "—"}
                           {movement != null && (
                             <span
-                              style={{
-                                marginLeft: 6,
-                                color:
-                                  movement > 0
-                                    ? "green"
-                                    : movement < 0
-                                    ? "red"
-                                    : "inherit",
-                              }}
+                              className={`movement ${movement > 0 ? "movement-up" : movement < 0 ? "movement-down" : "movement-same"}`}
                             >
                               {movement > 0
                                 ? `↑${movement}`
@@ -657,11 +641,8 @@ function StackRankYTD({ allMonthRanks, sortMonth, onSortMonthChange, sellerYTDTo
                       );
                     }
                   })}
-                  <td style={{ textAlign: "center" }}>
+                  <td style={{ textAlign: "center", fontWeight: 700 }}>
                     {formatCurrency(ytdData.total)}
-                  </td>
-                  <td style={{ textAlign: "center" }}>
-                    {ytdData.rank}
                   </td>
                 </tr>
               );
@@ -726,7 +707,6 @@ function QuotaAttainmentChart({ data, monthlyQuotas }) {
       <p>
         Compare {selectedRep}'s MRC vs. Quota for each 2025 month (Upgrades = $15).
       </p>
-
       <div style={{ width: "100%", height: 400 }}>
         <ResponsiveContainer>
           <BarChart
@@ -736,35 +716,34 @@ function QuotaAttainmentChart({ data, monthlyQuotas }) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey="month"
-              stroke="#fff"
-              tick={{ fill: "#fff" }}
+              stroke="var(--color-text-primary)"
+              tick={{ fill: "var(--color-text-primary)", fontWeight: 600 }}
+              fontSize={13}
             />
             <YAxis
-              stroke="#fff"
-              tick={{ fill: "#fff" }}
+              stroke="var(--color-text-primary)"
+              tick={{ fill: "var(--color-text-primary)", fontWeight: 700, fontSize: 14 }}
               tickFormatter={formatCurrency}
+              width={100}
             />
             <Tooltip
               formatter={formatCurrency}
               labelStyle={{ color: "#000" }}
               contentStyle={{
-                backgroundColor: "rgba(255,255,255,0.9)",
-                border: "1px solid #999",
+                backgroundColor: "rgba(255,255,255,0.92)",
+                border: "1px solid var(--color-accent)",
+                borderRadius: "7px",
               }}
               itemStyle={{ color: "#000" }}
             />
-            <Legend wrapperStyle={{ color: "#fff", fontSize: "0.9rem" }} />
-
-            {/* Quota bar => orange */}
-            <Bar dataKey="Quota" fill="#ff6f32" name="Quota" />
-
-            {/* MRC bar => color-coded if under 50% => red, else #00bfff */}
+            <Legend wrapperStyle={{ color: "var(--color-text-primary)", fontSize: "0.9rem" }} />
+            <Bar dataKey="Quota" fill="var(--color-accent)" name="Quota" />
             <Bar
               dataKey="MRC"
               name="MRC"
               shape={(props) => {
                 const { x, y, width, height, payload } = props;
-                const color = payload.under50 ? "red" : "#00bfff";
+                const color = payload.under50 ? "var(--color-brand-blue-light)" : "var(--color-brand-orange)";
                 return <rect x={x} y={y} width={width} height={height} fill={color} />;
               }}
             />

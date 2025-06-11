@@ -11,16 +11,20 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
-  Line, // Import Line for the total MRC line
+  Line,
 } from "recharts";
 import "./App.css";
-import { getUserRole } from "./utils/getUserRole"; // Ensure this utility is correctly imported
+import { getUserRole } from "./utils/getUserRole";
 
-// Utility Functions (Unchanged)
+// Utility Functions
 const MONTH_ORDER = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
+
+const isWireless = (type) => type?.toLowerCase().includes("mobility");
+const isWireline = (type) => type?.toLowerCase().includes("wireline");
+
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -29,12 +33,14 @@ function formatCurrency(value) {
     maximumFractionDigits: 2,
   }).format(value || 0);
 }
+
 function getCurrentMonthYear() {
   const now = new Date();
   const month = MONTH_ORDER[now.getMonth()];
   const year = now.getFullYear();
   return `${month} ${year}`;
 }
+
 function getLastFourMonths() {
   const now = new Date();
   const months = [];
@@ -44,11 +50,9 @@ function getLastFourMonths() {
     const year = tempDate.getFullYear();
     months.push(`${monthName} ${year}`);
   }
-  // Return in chronological order (oldest to newest) for table headers
   return months.reverse();
 }
 
-// KPI Components (Unchanged)
 function TotalMRC({ total }) {
   return (
     <div className="card metric-card" tabIndex={0} aria-label={`Total YTD MRC ${formatCurrency(total)}`}>
@@ -57,6 +61,7 @@ function TotalMRC({ total }) {
     </div>
   );
 }
+
 function MTDCard({ salesData }) {
   const currentMonthYear = getCurrentMonthYear();
   const mtd = salesData
@@ -70,14 +75,30 @@ function MTDCard({ salesData }) {
   );
 }
 
-// Total Revenue for Month Chart (Enhanced for Stacked Bars + Line)
+/* ---- Custom Tooltip for Charts ---- */
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="recharts-tooltip">
+        <p className="label">{`${label}`}</p>
+        {payload.map((entry, index) => (
+          <p key={`item-${index}`} style={{ color: entry.color }}>
+            {`${entry.name}: ${formatCurrency(entry.value)}`}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
+/* ---- Monthly Trend Chart ---- */
 function TotalRevenueForMonth({ salesData }) {
   const monthlyData = useMemo(() => {
     const agg = {};
     salesData.forEach((sale) => {
       const { Month, MRC, Type } = sale;
       if (!Month || !MRC) return;
-
       if (!agg[Month]) {
         agg[Month] = {
           Wireless: 0,
@@ -85,11 +106,10 @@ function TotalRevenueForMonth({ salesData }) {
           Total: 0,
         };
       }
-
       agg[Month].Total += MRC;
-      if (Type?.toLowerCase().includes("wireless")) {
+      if (isWireless(Type)) {
         agg[Month].Wireless += MRC;
-      } else if (Type?.toLowerCase().includes("wireline")) {
+      } else if (isWireline(Type)) {
         agg[Month].Wireline += MRC;
       }
     });
@@ -109,22 +129,14 @@ function TotalRevenueForMonth({ salesData }) {
       });
   }, [salesData]);
 
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="recharts-tooltip">
-          <p className="label">{`${label}`}</p>
-          {payload.map((entry, index) => (
-            <p key={`item-${index}`} style={{ color: entry.color }}>
-              {`${entry.name}: ${formatCurrency(entry.value)}`}
-            </p>
-          ))}
-        </div>
-      );
+  // Detect dark mode via document root class
+  const isDarkMode = useMemo(() => {
+    if (typeof window !== "undefined") {
+      return document.documentElement.classList.contains("dark") ||
+        window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
-    return null;
-  };
-
+    return false;
+  }, []);
 
   return (
     <div className="card chart-card" tabIndex={0} aria-label="Total Revenue for Month with Wireline, Wireless, and Total MRC">
@@ -132,10 +144,25 @@ function TotalRevenueForMonth({ salesData }) {
         <ChartBarIcon className="icon" /> Total Revenue for Month
       </h2>
       <ResponsiveContainer width="100%" height={280}>
-        <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+        <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: 30, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
-          <XAxis dataKey="month" stroke="var(--color-text-primary)" fontSize={13} hide={window.innerWidth < 600} />
-          <YAxis stroke="var(--color-text-primary)" fontSize={13} tickFormatter={formatCurrency} />
+          <XAxis
+            dataKey="month"
+            stroke="var(--color-text-primary)"
+            fontSize={13}
+            hide={window.innerWidth < 600}
+            tick={{ fontWeight: 600 }}
+          />
+          <YAxis
+            stroke={isDarkMode ? "#fff" : "#111"}
+            fontSize={15}
+            tick={{ fontWeight: 700, fill: isDarkMode ? "#fff" : "#111" }}
+            tickFormatter={formatCurrency}
+            width={100}
+            interval="preserveStartEnd"
+            allowDecimals={false}
+            domain={[0, "auto"]}
+          />
           <Tooltip
             content={<CustomTooltip />}
             labelStyle={{ color: "#000" }}
@@ -146,14 +173,14 @@ function TotalRevenueForMonth({ salesData }) {
             }}
             itemStyle={{ color: "#000" }}
           />
-          <Bar dataKey="Wireless" stackId="a" fill="#00C49F" name="Wireless MRC" /> {/* Green for Wireless */}
-          <Bar dataKey="Wireline" stackId="a" fill="#0088FE" name="Wireline MRC" /> {/* Blue for Wireline */}
+          <Bar dataKey="Wireless" stackId="a" fill="var(--color-brand-orange)" name="Wireless (Mobility) MRC" />
+          <Bar dataKey="Wireline" stackId="a" fill="var(--color-brand-blue-light)" name="Wireline MRC" />
           <Line
             type="monotone"
             dataKey="Total"
-            stroke="#FF5F00"
+            stroke="var(--color-accent)"
             strokeWidth={2}
-            dot={{ r: 4 }}
+            dot={{ r: 4, stroke: 'var(--color-accent)', fill: 'var(--color-accent)' }}
             name="Total MRC"
             label={{ position: 'top', formatter: formatCurrency, fill: 'var(--color-text-secondary)', fontSize: 11 }}
           />
@@ -163,8 +190,7 @@ function TotalRevenueForMonth({ salesData }) {
   );
 }
 
-
-// Seller Stack Rank (Enhanced Styling - no code changes here, relies on App.css)
+/* ---- Seller Stack Rank (YTD) ---- */
 function SellerStackRank({ ranking }) {
   return (
     <div className="card leaderboard" tabIndex={0} aria-label="Seller Stack Rank YTD">
@@ -177,13 +203,12 @@ function SellerStackRank({ ranking }) {
             key={seller.Seller}
             className={
               index === 0 ? "gold" :
-              index === 1 ? "silver" :
-              index === 2 ? "bronze" :
-              ""
+                index === 1 ? "silver" :
+                  index === 2 ? "bronze" :
+                    ""
             }
             tabIndex={0}
             aria-label={`#${index + 1} ${seller.Seller}: ${formatCurrency(seller.TotalMRC)}`}
-            // Removed inline style as it's now handled by CSS classes for better separation
           >
             <strong>{seller.Seller}</strong>
             <span>{formatCurrency(seller.TotalMRC)}</span>
@@ -194,7 +219,7 @@ function SellerStackRank({ ranking }) {
   );
 }
 
-// Current Month Drill-Down (Unchanged)
+/* ---- Current Month Sales Table ---- */
 function SellerCurrentMonthDetailed({ salesData }) {
   const currentMonthYear = getCurrentMonthYear();
   const [sellerFilter, setSellerFilter] = useState("");
@@ -207,6 +232,7 @@ function SellerCurrentMonthDetailed({ salesData }) {
   useEffect(() => {
     if (modalOpen && modalRef.current) modalRef.current.focus();
   }, [modalOpen]);
+
   useEffect(() => {
     if (!modalOpen) return;
     const handler = (e) => { if (e.key === "Escape") setModalOpen(false); };
@@ -223,9 +249,9 @@ function SellerCurrentMonthDetailed({ salesData }) {
             acc[name] = { Seller: name, TotalMRC: 0, Wireline: 0, Wireless: 0 };
           }
           acc[name].TotalMRC += sale.MRC || 0;
-          if (sale.Type?.toLowerCase().includes("wireline")) {
+          if (isWireline(sale.Type)) {
             acc[name].Wireline += sale.MRC || 0;
-          } else {
+          } else if (isWireless(sale.Type)) {
             acc[name].Wireless += sale.MRC || 0;
           }
         }
@@ -270,6 +296,7 @@ function SellerCurrentMonthDetailed({ salesData }) {
     setSellerSales(details);
     setModalOpen(true);
   };
+
   const closeModal = () => {
     setModalOpen(false);
     setSelectedSeller(null);
@@ -294,8 +321,10 @@ function SellerCurrentMonthDetailed({ salesData }) {
               marginLeft: "5px",
               padding: "5px",
               borderRadius: "6px",
-              border: "1px solid #999",
+              border: "1px solid var(--color-brand-gray)",
               minWidth: 80,
+              background: "var(--color-card)",
+              color: "var(--color-text-primary)",
             }}
           />
         </div>
@@ -305,7 +334,14 @@ function SellerCurrentMonthDetailed({ salesData }) {
             id="cm-sort"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            style={{ marginLeft: 5 }}
+            style={{
+              marginLeft: 5,
+              padding: "5px",
+              borderRadius: "6px",
+              border: "1px solid var(--color-brand-gray)",
+              background: "var(--color-card)",
+              color: "var(--color-text-primary)",
+            }}
           >
             <option value="mrc">Total MRC (High to Low)</option>
             <option value="wireline">Wireline (High to Low)</option>
@@ -336,9 +372,9 @@ function SellerCurrentMonthDetailed({ salesData }) {
                 <td
                   className={
                     index === 0 ? "gold" :
-                    index === 1 ? "silver" :
-                    index === 2 ? "bronze" :
-                    ""
+                      index === 1 ? "silver" :
+                        index === 2 ? "bronze" :
+                          ""
                   }
                 >
                   {seller.Seller}
@@ -399,25 +435,23 @@ function SellerCurrentMonthDetailed({ salesData }) {
   );
 }
 
-
+/* ---- Rolling 4 Months Table ---- */
 function Rolling4Months({ salesData }) {
-  const months = getLastFourMonths(); // This now returns months in chronological order
+  const months = getLastFourMonths();
   const [sellerFilter, setSellerFilter] = useState("");
-  const [sortBy, setSortBy] = useState("total"); // Default sort by total across 4 months
+  const [sortBy, setSortBy] = useState("total");
 
-  // Aggregate data for the rolling 4 months
   const aggregatedData = useMemo(() => {
     const dataBySeller = {};
-
     salesData.forEach(sale => {
       const { Seller, Month, MRC } = sale;
       if (!Seller || !Month || typeof MRC !== 'number') return;
 
-      if (months.includes(Month)) { // Only include sales within the last 4 months
+      if (months.includes(Month)) {
         if (!dataBySeller[Seller]) {
           dataBySeller[Seller] = { Seller, TotalOverallMRC: 0 };
           months.forEach(m => {
-            dataBySeller[Seller][m] = 0; // Initialize MRC for each month
+            dataBySeller[Seller][m] = 0;
           });
         }
         dataBySeller[Seller][Month] += MRC;
@@ -427,17 +461,15 @@ function Rolling4Months({ salesData }) {
 
     let result = Object.values(dataBySeller);
 
-    // Apply seller filter
     if (sellerFilter.trim() !== "") {
       result = result.filter(seller =>
         seller.Seller.toLowerCase().includes(sellerFilter.toLowerCase())
       );
     }
 
-    // Apply sorting
     if (sortBy === "total") {
       result.sort((a, b) => b.TotalOverallMRC - a.TotalOverallMRC);
-    } else if (months.includes(sortBy)) { // Sort by a specific month's MRC
+    } else if (months.includes(sortBy)) {
       result.sort((a, b) => b[sortBy] - a[sortBy]);
     } else if (sortBy === "seller") {
       result.sort((a, b) => a.Seller.localeCompare(b.Seller));
@@ -445,7 +477,6 @@ function Rolling4Months({ salesData }) {
 
     return result;
   }, [salesData, months, sellerFilter, sortBy]);
-
 
   const grandTotals = useMemo(() => {
     const totals = { TotalOverallMRC: 0 };
@@ -462,6 +493,37 @@ function Rolling4Months({ salesData }) {
     return totals;
   }, [aggregatedData, months]);
 
+  // CSV Export Function
+  const exportToCSV = () => {
+    // Header
+    let csv = ["Seller", ...months, "4-Month Total"].join(",") + "\n";
+    // Data Rows
+    aggregatedData.forEach((seller) => {
+      const row = [
+        `"${seller.Seller}"`,
+        ...months.map(m => seller[m] != null ? seller[m].toFixed(2) : "0.00"),
+        seller.TotalOverallMRC != null ? seller.TotalOverallMRC.toFixed(2) : "0.00"
+      ];
+      csv += row.join(",") + "\n";
+    });
+    // Grand Total Row
+    csv += [
+      `"Grand Total"`,
+      ...months.map(m => grandTotals[m] != null ? grandTotals[m].toFixed(2) : "0.00"),
+      grandTotals.TotalOverallMRC != null ? grandTotals.TotalOverallMRC.toFixed(2) : "0.00"
+    ].join(",") + "\n";
+    // Download
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "netspark_rolling4months.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="card rolling-months fade-in">
       <h2>
@@ -470,8 +532,8 @@ function Rolling4Months({ salesData }) {
       <p style={{ marginBottom: "8px" }}>
         Total MRC per seller for the last four months.
       </p>
-      <div className="controls" style={{ marginBottom: "12px", display: 'flex', gap: '10px', flexWrap: "wrap" }}>
-        <div className="filter-controls">
+      <div style={{ display: "flex", alignItems: "center", marginBottom: "12px", flexWrap: "wrap" }}>
+        <div className="filter-controls" style={{ marginRight: 16 }}>
           <label htmlFor="r4-filter-seller">Filter Seller:</label>
           <input
             id="r4-filter-seller"
@@ -479,14 +541,16 @@ function Rolling4Months({ salesData }) {
             value={sellerFilter}
             onChange={(e) => setSellerFilter(e.target.value)}
             placeholder="Type seller name..."
+            style={{ marginLeft: 5, padding: "5px", borderRadius: 6, border: "1px solid var(--color-brand-gray)" }}
           />
         </div>
-        <div className="filter-controls">
+        <div className="filter-controls" style={{ marginRight: 16 }}>
           <label htmlFor="r4-sort">Sort By:</label>
           <select
             id="r4-sort"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
+            style={{ marginLeft: 5, padding: "5px", borderRadius: 6, border: "1px solid var(--color-brand-gray)" }}
           >
             <option value="total">Overall Total (High to Low)</option>
             <option value="seller">Seller (A-Z)</option>
@@ -495,6 +559,23 @@ function Rolling4Months({ salesData }) {
             ))}
           </select>
         </div>
+        <button
+          className="refresh-btn"
+          style={{
+            padding: "7px 20px",
+            borderRadius: 7,
+            background: "var(--color-brand-orange, #ff6f32)",
+            color: "#fff",
+            fontWeight: 600,
+            border: "none",
+            cursor: "pointer",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+            marginLeft: "auto"
+          }}
+          onClick={exportToCSV}
+        >
+          Export CSV
+        </button>
       </div>
       <div className="table-container">
         <table className="rolling-table">
@@ -541,14 +622,12 @@ function Rolling4Months({ salesData }) {
   );
 }
 
-
 // Main Dashboard Component
 function Dashboard({ user, theme, setTheme }) {
   const [salesData, setSalesData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
-  // const [newSales, setNewSales] = useState([]); // REMOVED: No longer needed for toast
   const docsRef = useRef(new Set());
 
   const fetchSalesData = useCallback(async () => {
@@ -580,7 +659,6 @@ function Dashboard({ user, theme, setTheme }) {
         }));
         setSalesData(updated);
         setLastUpdated(new Date().toLocaleTimeString());
-        // REMOVED: Logic for detecting new sales and setting newSales state
         docsRef.current = new Set(updated.map((d) => d.id));
       },
       (err) => {
@@ -591,23 +669,11 @@ function Dashboard({ user, theme, setTheme }) {
     return () => unsubscribe();
   }, [fetchSalesData]);
 
-  // REMOVED: useEffect for clearing newSales toasts is no longer needed
-  // useEffect(() => {
-  //   if (newSales.length > 0) {
-  //     const timers = newSales.map((sale) =>
-  //       setTimeout(() => {
-  //         setNewSales((prev) => prev.filter((s) => s.id !== sale.id));
-  //       }, 5000)
-  //     );
-  //     return () => timers.forEach((t) => clearTimeout(t));
-  //   }
-  // }, [newSales]);
-
-
   const totalMRC = useMemo(
     () => salesData.reduce((sum, s) => sum + (s.MRC || 0), 0),
     [salesData]
   );
+
   const sellerRanking = useMemo(
     () =>
       Object.values(
@@ -628,14 +694,6 @@ function Dashboard({ user, theme, setTheme }) {
   return (
     <div className="App">
       <NavBar user={user} theme={theme} setTheme={setTheme} />
-      {/* REMOVED: Toast container for recent sales notifications */}
-      {/* <div className="toast-container" aria-live="polite">
-        {newSales.map((n) => (
-          <div key={n.id} className="modal-content" tabIndex={0}>
-            {n.message}
-          </div>
-        ))}
-      </div> */}
       <div className="dashboard-stack">
         <div className="card-row">
           <TotalMRC total={totalMRC} />
@@ -646,12 +704,6 @@ function Dashboard({ user, theme, setTheme }) {
         <SellerCurrentMonthDetailed salesData={salesData} />
         <Rolling4Months salesData={salesData} />
       </div>
-      {/* REMOVED: Last updated notification for recent sales */}
-      {/* {lastUpdated && (
-        <div className="modal-content" aria-label="New sales data updated">
-          New sales data loaded at {lastUpdated}!
-        </div>
-      )} */}
     </div>
   );
 }
