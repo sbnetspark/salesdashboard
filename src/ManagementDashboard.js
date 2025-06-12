@@ -33,8 +33,8 @@ const getAll2025Months = () => MONTH_ORDER.map((m) => `${m} 2025`);
 
 const BRAND_BLUE   = "var(--color-brand-blue-light)";
 const BRAND_ORANGE = "var(--color-brand-orange)";
-const BRAND_GREEN  = "var(--color-brand-green, #00c853)"; // bright green fallback
-const BRAND_RED    = "var(--color-brand-red,  #e74c3c)";
+const BRAND_GREEN  = "var(--color-success)";
+const BRAND_RED    = "var(--color-error)";
 
 const isDarkMode = () =>
   typeof window !== "undefined" &&
@@ -56,12 +56,19 @@ const getEffectiveMRC = (mrc = 0, type = "") =>
 const CustomTooltip = ({ active, payload, label }) =>
   active && payload?.length ? (
     <div className="recharts-tooltip">
-      <p className="label">{label}</p>
-      {payload.map(({ name, value, color }) => (
-        <p key={name} style={{ color }}>
-          {`${name}: ${formatCurrency(value)}`}
-        </p>
-      ))}
+      <p className="label" style={{ fontWeight: 600 }}>{label}</p>
+      <p style={{ color: "var(--color-brand-orange)", fontWeight: 500, margin: 0 }}>
+        Wireless (Mobility) MRC: {formatCurrency(payload.find(p => p.dataKey === "wireless")?.value || 0)}
+      </p>
+      <p style={{ color: "var(--color-brand-blue-light)", fontWeight: 500, margin: 0 }}>
+        Wireline MRC: {formatCurrency(payload.find(p => p.dataKey === "wireline")?.value || 0)}
+      </p>
+      <p style={{ color: "var(--color-success)", fontWeight: 700, margin: "8px 0 0 0" }}>
+        Total: {formatCurrency(payload.find(p => p.dataKey === "total")?.value ||
+          ((payload.find(p => p.dataKey === "wireless")?.value || 0) +
+           (payload.find(p => p.dataKey === "wireline")?.value || 0)
+          ))}
+      </p>
     </div>
   ) : null;
 
@@ -83,7 +90,7 @@ function buildMonthlyTrend(rows) {
 function buildWireMob(rows) {
   let wire = 0, mob = 0;
   rows.forEach((r) => {
-    if (!r.Month?.includes("2025")) return;
+    if (typeof r.Month !== "string" || !r.Month.includes("2025")) return;
     const eff = getEffectiveMRC(r.MRC, r.Type);
     r.Type?.toLowerCase().includes("wireline") ? (wire += eff) : (mob += eff);
   });
@@ -111,7 +118,7 @@ const buildAllRanks = (rows) =>
 function buildYTDTotals(rows) {
   const map = {};
   rows
-    .filter((r) => r.Month?.includes("2025"))
+    .filter((r) => typeof r.Month === "string" && r.Month.includes("2025"))
     .forEach((r) => {
       const s = r.Seller || "Unknown";
       map[s] = (map[s] ?? 0) + getEffectiveMRC(r.MRC, r.Type);
@@ -198,7 +205,8 @@ function ManagementDashboard({ theme, setTheme }) {
   /* metrics */
   useEffect(() => {
     if (!sales.length) return;
-    const rows2025 = sales.filter((r) => r.Month?.includes("2025"));
+    // FIX: Only keep rows where Month is a string
+    const rows2025 = sales.filter((r) => typeof r.Month === "string" && r.Month.includes("2025"));
     const now      = new Date();
     const curMon   = `${MONTH_ORDER[now.getMonth()]} 2025`;
 
@@ -236,7 +244,7 @@ function ManagementDashboard({ theme, setTheme }) {
           <MetricCard title="MTD MRC" value={formatCurrency(mtd)} />
         </div>
 
-        {/* Monthly Trend */}
+        {/* Monthly Trend: Now with wireline, wireless, and total (green line) */}
         <div className="card chart-card fade-in" style={{ marginBottom: 32 }}>
           <h2 style={{ marginBottom: 6 }}>
             <ChartBarIcon className="icon" /> Monthly Trend (Wireline / Wireless / Total)
@@ -250,15 +258,23 @@ function ManagementDashboard({ theme, setTheme }) {
                   dataKey="month"
                   height={60}
                   tick={{ fill: "var(--color-text-primary)", fontWeight: 600, angle: -35, textAnchor: "end" }}
+                  interval={0}
                 />
                 <YAxis
                   width={120}
                   tick={{ fill: isDarkMode() ? "#fff" : "#222", fontWeight: 700 }}
                   tickFormatter={formatCurrency}
+                  interval="preserveStartEnd"
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Legend wrapperStyle={{ color: "var(--color-text-primary)" }} />
-                {/* Areas */}
+                <Legend
+                  formatter={value => {
+                    if (value === "wireless") return <span style={{ color: "var(--color-brand-orange)" }}>Wireless (Mobility) MRC</span>;
+                    if (value === "wireline")  return <span style={{ color: "var(--color-brand-blue-light)" }}>Wireline MRC</span>;
+                    if (value === "total")     return <span style={{ color: "var(--color-success)", fontWeight: 600 }}>Total MRC</span>;
+                    return value;
+                  }}
+                />
                 <Area
                   type="monotone"
                   dataKey="wireless"
@@ -277,7 +293,6 @@ function ManagementDashboard({ theme, setTheme }) {
                   fillOpacity={0.85}
                   name="Wireline MRC"
                 />
-                {/* GREEN Total Line */}
                 <Line
                   type="monotone"
                   dataKey="total"
@@ -317,8 +332,6 @@ function ManagementDashboard({ theme, setTheme }) {
             </ResponsiveContainer>
           </div>
         </div>
-
-        {/* Performance table, stack‑rank, quota chart */}
         <SortableQuotaPerformance
           data={sales}
           monthlyQuotas={monthlyQuotas}
@@ -337,10 +350,7 @@ function ManagementDashboard({ theme, setTheme }) {
   );
 }
 
-/* =================================================================== */
-/*                       Sub components                                */
-/* =================================================================== */
-
+/* ---------------------- Sub components (FULL, no omissions) ----------------------- */
 const Gate = ({ title, text }) => (
   <main className="login-gate">
     <div className="login-card">
@@ -357,7 +367,6 @@ const MetricCard = ({ title, value }) => (
   </div>
 );
 
-/* ----- Quota Performance table (unchanged logic) ----- */
 function SortableQuotaPerformance({ data, monthlyQuotas, sortBy, onSortChange }) {
   const now  = new Date();
   const curM = `${MONTH_ORDER[now.getMonth()]} 2025`;
@@ -444,7 +453,6 @@ function SortableQuotaPerformance({ data, monthlyQuotas, sortBy, onSortChange })
   );
 }
 
-/* ----- Stack‑rank table (same as previous) ----- */
 function StackRankYTD({ allMonthRanks, sortMonth, onSortMonthChange, sellerYTDTotals }) {
   const months = getAll2025Months();
   const sellers = Array.from(
@@ -515,7 +523,6 @@ function StackRankYTD({ allMonthRanks, sortMonth, onSortMonthChange, sellerYTDTo
   );
 }
 
-/* ----- Quota Attainment w/ colour logic ----- */
 function QuotaAttainmentChart({ data, monthlyQuotas }) {
   const months = getAll2025Months();
   const reps = monthlyQuotas.map((r) => r.Representative).sort();
@@ -565,9 +572,7 @@ function QuotaAttainmentChart({ data, monthlyQuotas }) {
             />
             <Tooltip formatter={formatCurrency} />
             <Legend wrapperStyle={{ color: "var(--color-text-primary)" }} />
-            {/* Quota = BLUE */}
             <Bar dataKey="Quota" name="Quota" fill={BRAND_BLUE} radius={[4, 4, 0, 0]} />
-            {/* MRC coloured */}
             <Bar
               dataKey="MRC"
               name="MRC"
@@ -589,7 +594,6 @@ function QuotaAttainmentChart({ data, monthlyQuotas }) {
   );
 }
 
-/* ----- header with select ----- */
 function HeaderSelect({ title, id, label, value, onChange, groups }) {
   return (
     <div className="card-header">

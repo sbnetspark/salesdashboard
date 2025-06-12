@@ -1,5 +1,5 @@
 // src/SellerLandingPage.js
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { db } from "./firebase";
 import { collection, getDocs } from "firebase/firestore";
 import "./App.css";
@@ -14,6 +14,7 @@ import {
   Tooltip,
   CartesianGrid,
   Legend,
+  LabelList,
 } from "recharts";
 
 // --- Brand Utility ---
@@ -22,8 +23,8 @@ function formatCurrency(val) {
 }
 
 const MONTH_ORDER = [
-  "January","February","March","April","May","June","July","August",
-  "September","October","November","December"
+  "January", "February", "March", "April", "May", "June", "July", "August",
+  "September", "October", "November", "December"
 ];
 const getAll2025Months = () => MONTH_ORDER.map((m) => `${m} 2025`);
 const getCurrentMonthYear = () => {
@@ -31,10 +32,28 @@ const getCurrentMonthYear = () => {
   return `${MONTH_ORDER[now.getMonth()]} ${now.getFullYear()}`;
 };
 
-// --- Bar Colors (use CSS vars if possible)
-const BRAND_BLUE   = "var(--color-brand-blue-light)";
+// --- Brand colors from CSS vars
+const BRAND_BLUE = "var(--color-brand-blue-light)";
 const BRAND_ORANGE = "var(--color-brand-orange)";
-const BRAND_GREEN  = "var(--color-brand-green, #00c853)";
+const BRAND_GREEN = "var(--color-success)";
+
+// --- Custom Tooltip ---
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    const wireline = payload.find(p => p.dataKey === "wireline");
+    const wireless = payload.find(p => p.dataKey === "wireless");
+    const total = payload.find(p => p.dataKey === "total");
+    return (
+      <div className="recharts-tooltip">
+        <p className="label" style={{ fontWeight: 600 }}>{label}</p>
+        <p style={{ color: BRAND_BLUE, margin: 0 }}>Wireline MRC: {formatCurrency(wireline?.value || 0)}</p>
+        <p style={{ color: BRAND_ORANGE, margin: 0 }}>Wireless (Mobility) MRC: {formatCurrency(wireless?.value || 0)}</p>
+        <p style={{ color: BRAND_GREEN, fontWeight: 700, margin: "8px 0 0 0" }}>Total: {formatCurrency(total?.value || ((wireline?.value || 0) + (wireless?.value || 0)))}</p>
+      </div>
+    );
+  }
+  return null;
+};
 
 // --- Main Component ---
 const SellerLandingPage = ({ user, theme, setTheme }) => {
@@ -45,6 +64,7 @@ const SellerLandingPage = ({ user, theme, setTheme }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const closeBtnRef = useRef();
 
+  // Fetch sales
   useEffect(() => {
     (async () => {
       try {
@@ -79,20 +99,16 @@ const SellerLandingPage = ({ user, theme, setTheme }) => {
   );
 
   // Always show Jan–Dec 2025, even if sales missing.
-  // Group by wireline/wireless, and sum total.
   const monthlySalesData = useMemo(() => {
     const months = getAll2025Months();
     const result = months.map(month => ({
-      month: month.split(' ')[0], // Jan, Feb, etc.
+      month: month.split(' ')[0],
       wireline: 0,
       wireless: 0,
       total: 0,
     }));
-
-    // Build month index for lookup
     const monthIndex = {};
     months.forEach((m, i) => { monthIndex[m] = i; });
-
     sales.forEach(s => {
       const idx = monthIndex[s.Month];
       if (typeof idx !== "number") return;
@@ -105,20 +121,26 @@ const SellerLandingPage = ({ user, theme, setTheme }) => {
     return result;
   }, [sales]);
 
+  // --- Modal logic ---
   const handleRowClick = (sale) => {
     setSelectedSale(sale);
     setIsModalOpen(true);
   };
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setIsModalOpen(false);
     setSelectedSale(null);
-  };
+  }, []);
   useEffect(() => {
     if (isModalOpen && closeBtnRef.current) closeBtnRef.current.focus();
-  }, [isModalOpen]);
+    function onKeyDown(e) {
+      if (isModalOpen && e.key === "Escape") closeModal();
+    }
+    if (isModalOpen) window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isModalOpen, closeModal]);
 
-  if (loading) return <div className="loader">Loading your sales...</div>;
-  if (error) return <div className="error">{error}</div>;
+  if (loading) return <div className="loader" role="status">Loading your sales...</div>;
+  if (error) return <div className="error" role="alert">{error}</div>;
 
   return (
     <div className="App">
@@ -137,7 +159,7 @@ const SellerLandingPage = ({ user, theme, setTheme }) => {
 
         {/* Month-over-Month Sales Chart */}
         <div className="card chart-card fade-in">
-          <h2 style={{ color: "var(--color-brand-orange)" }}>
+          <h2>
             <span style={{ verticalAlign: "middle", marginRight: 6 }}>
               <svg width="20" height="20" viewBox="0 0 20 20" style={{ display: 'inline', verticalAlign: 'middle' }}>
                 <rect width="20" height="20" fill="currentColor" />
@@ -150,36 +172,42 @@ const SellerLandingPage = ({ user, theme, setTheme }) => {
               <BarChart
                 data={monthlySalesData}
                 margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                padding={{ left: 10, right: 10 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" stroke="var(--color-text-secondary)" fontSize={12} />
-                <YAxis stroke="var(--color-text-secondary)" fontSize={12} tickFormatter={formatCurrency} />
-                <Tooltip
-                  formatter={(value, name) =>
-                    [formatCurrency(value),
-                      name === "wireline"
-                        ? "Wireline MRC"
-                        : name === "wireless"
-                        ? "Wireless (Mobility) MRC"
-                        : name === "total"
-                        ? "Total"
-                        : name]}
-                  labelStyle={{ color: '#000' }}
-                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.93)', border: '1px solid #999' }}
-                  itemStyle={{ color: '#000' }}
+                <XAxis
+                  dataKey="month"
+                  stroke="var(--color-text-secondary)"
+                  fontSize={12}
+                  interval={0}
                 />
+                <YAxis stroke="var(--color-text-secondary)" fontSize={12} tickFormatter={formatCurrency} />
+                <Tooltip content={<CustomTooltip />} />
                 <Legend
                   verticalAlign="top"
                   wrapperStyle={{ color: "var(--color-text-primary)", fontSize: "0.92rem" }}
+                  formatter={value => {
+                    if (value === "wireline") return <span style={{ color: BRAND_BLUE }}>Wireline MRC</span>;
+                    if (value === "wireless") return <span style={{ color: BRAND_ORANGE }}>Wireless (Mobility) MRC</span>;
+                    if (value === "total") return <span style={{ color: BRAND_GREEN, fontWeight: 600 }}>Total</span>;
+                    return value;
+                  }}
                 />
                 {/* Stacked bars: wireline, wireless */}
-                <Bar dataKey="wireline" stackId="mrc" name="Wireline MRC" fill={BRAND_BLUE} />
-                <Bar dataKey="wireless" stackId="mrc" name="Wireless (Mobility) MRC" fill={BRAND_ORANGE} />
+                <Bar dataKey="wireline" stackId="mrc" name="Wireline" fill={BRAND_BLUE} />
+                <Bar dataKey="wireless" stackId="mrc" name="Wireless" fill={BRAND_ORANGE}>
+                  <LabelList
+                    dataKey="total"
+                    position="top"
+                    formatter={formatCurrency}
+                    style={{ fill: BRAND_GREEN, fontWeight: 700, fontSize: 12 }}
+                  />
+                </Bar>
                 {/* Green total revenue line */}
                 <Line
                   type="monotone"
                   dataKey="total"
-                  name="Total Revenue"
+                  name="Total"
                   stroke={BRAND_GREEN}
                   strokeWidth={3}
                   dot={{ r: 4, stroke: BRAND_GREEN, fill: BRAND_GREEN }}
@@ -203,26 +231,37 @@ const SellerLandingPage = ({ user, theme, setTheme }) => {
                 </tr>
               </thead>
               <tbody>
-                {[...sales].reverse().slice(0, 20).map((s, i) => (
-                  <tr
-                    key={i}
-                    onClick={() => handleRowClick(s)}
-                    className="sales-table-row"
-                    tabIndex={0}
-                    aria-label={`View sale details for ${s.Customer || "Customer"}, ${s.Month}`}
-                  >
-                    <td>{s.Month}</td>
-                    <td>{formatCurrency(s.MRC)}</td>
-                    <td>{s.Type}</td>
-                    <td>{s.Customer || "-"}</td>
+                {sales.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} style={{
+                      textAlign: "center",
+                      fontStyle: "italic",
+                      color: "var(--color-text-secondary)",
+                      background: "rgba(0,0,0,0.04)",
+                      fontWeight: 600
+                    }}>
+                      No sales found for you (yet)!
+                    </td>
                   </tr>
-                ))}
+                ) : (
+                  [...sales].reverse().slice(0, 20).map((s, i) => (
+                    <tr
+                      key={i}
+                      onClick={() => handleRowClick(s)}
+                      className="sales-table-row"
+                      tabIndex={0}
+                      aria-label={`View sale details for ${s.Customer || "Customer"}, ${s.Month}`}
+                    >
+                      <td>{s.Month}</td>
+                      <td>{formatCurrency(s.MRC)}</td>
+                      <td>{s.Type}</td>
+                      <td>{s.Customer || "-"}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
-          {sales.length === 0 && (
-            <div className="no-data">No sales found for you (yet)!</div>
-          )}
         </div>
       </div>
 
@@ -232,31 +271,31 @@ const SellerLandingPage = ({ user, theme, setTheme }) => {
           <div className="modal-content">
             <h2>Sale Details</h2>
             <div className="account-info">
-              <div className="account-field">
-                <span className="account-label">Month:</span>
-                <span className="account-value">{selectedSale.Month}</span>
+              <div className="utility-row">
+                <span className="row-label">Month:</span>
+                <span className="row-value">{selectedSale.Month}</span>
               </div>
-              <div className="account-field">
-                <span className="account-label">Customer:</span>
-                <span className="account-value">{selectedSale.Customer || "N/A"}</span>
+              <div className="utility-row">
+                <span className="row-label">Customer:</span>
+                <span className="row-value">{selectedSale.Customer || "N/A"}</span>
               </div>
-              <div className="account-field">
-                <span className="account-label">Type:</span>
-                <span className="account-value">{selectedSale.Type || "N/A"}</span>
+              <div className="utility-row">
+                <span className="row-label">Type:</span>
+                <span className="row-value">{selectedSale.Type || "N/A"}</span>
               </div>
-              <div className="account-field">
-                <span className="account-label">MRC:</span>
-                <span className="account-value">{formatCurrency(selectedSale.MRC)}</span>
+              <div className="utility-row">
+                <span className="row-label">MRC:</span>
+                <span className="row-value">{formatCurrency(selectedSale.MRC)}</span>
               </div>
               {selectedSale.Notes && (
-                <div className="account-field">
-                  <span className="account-label">Notes:</span>
-                  <span className="account-value" style={{textAlign: 'left', wordBreak: 'break-word'}}>{selectedSale.Notes}</span>
+                <div className="utility-row">
+                  <span className="row-label">Notes:</span>
+                  <span className="row-value" style={{ textAlign: 'left', wordBreak: 'break-word' }}>{selectedSale.Notes}</span>
                 </div>
               )}
             </div>
             <button
-              className="refresh-btn refresh-btn--neutral"
+              className="refresh-btn refresh-btn--neutral w-100"
               onClick={closeModal}
               autoFocus
               ref={closeBtnRef}

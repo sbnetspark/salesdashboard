@@ -12,11 +12,12 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   Line,
+  LabelList,
+  Legend,
 } from "recharts";
 import "./App.css";
 import { getUserRole } from "./utils/getUserRole";
 
-// Utility Functions
 const MONTH_ORDER = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
@@ -75,24 +76,29 @@ function MTDCard({ salesData }) {
   );
 }
 
-/* ---- Custom Tooltip for Charts ---- */
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
+    const wireless = payload.find(p => p.dataKey === "Wireless");
+    const wireline = payload.find(p => p.dataKey === "Wireline");
+    const total = payload.find(p => p.dataKey === "Total");
     return (
       <div className="recharts-tooltip">
-        <p className="label">{`${label}`}</p>
-        {payload.map((entry, index) => (
-          <p key={`item-${index}`} style={{ color: entry.color }}>
-            {`${entry.name}: ${formatCurrency(entry.value)}`}
-          </p>
-        ))}
+        <p className="label" style={{ fontWeight: 600, marginBottom: 8 }}>{label}</p>
+        <p style={{ color: "var(--color-brand-orange)", margin: 0, fontWeight: 500 }}>
+          Wireless (Mobility) MRC: {formatCurrency(wireless?.value || 0)}
+        </p>
+        <p style={{ color: "var(--color-brand-blue-light)", margin: 0, fontWeight: 500 }}>
+          Wireline MRC: {formatCurrency(wireline?.value || 0)}
+        </p>
+        <p style={{ color: "var(--color-success)", fontWeight: 700, margin: "8px 0 0 0" }}>
+          Total: {formatCurrency(total?.value || ((wireless?.value || 0) + (wireline?.value || 0)))}
+        </p>
       </div>
     );
   }
   return null;
 };
 
-/* ---- Monthly Trend Chart ---- */
 function TotalRevenueForMonth({ salesData }) {
   const monthlyData = useMemo(() => {
     const agg = {};
@@ -135,14 +141,18 @@ function TotalRevenueForMonth({ salesData }) {
         <ChartBarIcon className="icon" /> Total Revenue for Month
       </h2>
       <ResponsiveContainer width="100%" height={280}>
-        <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: 30, bottom: 0 }}>
+        <BarChart
+          data={monthlyData}
+          margin={{ top: 10, right: 10, left: 30, bottom: 0 }}
+          barGap={2}
+        >
           <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
           <XAxis
             dataKey="month"
             stroke="var(--color-text-primary)"
             fontSize={13}
-            hide={window.innerWidth < 600}
             tick={{ fontWeight: 600 }}
+            interval={0}
           />
           <YAxis
             stroke="var(--color-text-primary)"
@@ -154,26 +164,32 @@ function TotalRevenueForMonth({ salesData }) {
             allowDecimals={false}
             domain={[0, "auto"]}
           />
-          <Tooltip
-            content={<CustomTooltip />}
-            labelStyle={{ color: "#000" }}
-            contentStyle={{
-              backgroundColor: "rgba(255,255,255,0.92)",
-              border: "1px solid var(--color-accent)",
-              borderRadius: "7px",
+          <Tooltip content={<CustomTooltip />} />
+          <Legend
+            formatter={(value) => {
+              if (value === "Wireless") return <span style={{ color: "var(--color-brand-orange)" }}>Wireless (Mobility) MRC</span>;
+              if (value === "Wireline") return <span style={{ color: "var(--color-brand-blue-light)" }}>Wireline MRC</span>;
+              if (value === "Total") return <span style={{ color: "var(--color-success)", fontWeight: 600 }}>Total Revenue</span>;
+              return value;
             }}
-            itemStyle={{ color: "#000" }}
           />
-          <Bar dataKey="Wireless" stackId="a" fill="var(--color-brand-orange)" name="Wireless (Mobility) MRC" />
-          <Bar dataKey="Wireline" stackId="a" fill="var(--color-brand-blue-light)" name="Wireline MRC" />
+          <Bar dataKey="Wireless" stackId="a" fill="var(--color-brand-orange)" name="Wireless">
+            <LabelList
+              dataKey="Total"
+              position="top"
+              formatter={formatCurrency}
+              style={{ fill: "var(--color-success)", fontWeight: 700, fontSize: 13 }}
+            />
+          </Bar>
+          <Bar dataKey="Wireline" stackId="a" fill="var(--color-brand-blue-light)" name="Wireline" />
           <Line
             type="monotone"
             dataKey="Total"
-            stroke="var(--color-accent)"
-            strokeWidth={2}
-            dot={{ r: 4, stroke: 'var(--color-accent)', fill: 'var(--color-accent)' }}
-            name="Total MRC"
-            label={{ position: 'top', formatter: formatCurrency, fill: 'var(--color-text-secondary)', fontSize: 11 }}
+            stroke="var(--color-success)"
+            strokeWidth={3}
+            dot={{ r: 4, stroke: 'var(--color-success)', fill: 'var(--color-success)' }}
+            name="Total"
+            legendType="line"
           />
         </BarChart>
       </ResponsiveContainer>
@@ -222,6 +238,11 @@ function SellerCurrentMonthDetailed({ salesData }) {
 
   useEffect(() => {
     if (modalOpen && closeBtnRef.current) closeBtnRef.current.focus();
+    function onKeyDown(e) {
+      if (modalOpen && e.key === "Escape") setModalOpen(false);
+    }
+    if (modalOpen) window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, [modalOpen]);
 
   const filteredSellers = useMemo(() => {
@@ -301,6 +322,11 @@ function SellerCurrentMonthDetailed({ salesData }) {
             value={sellerFilter}
             onChange={(e) => setSellerFilter(e.target.value)}
             placeholder="Type seller name..."
+            style={{
+              background: "var(--color-card, #23273a)",
+              color: "var(--color-text-primary, #fff)",
+              border: "1px solid var(--color-brand-blue-light)"
+            }}
           />
         </div>
         <div className="filter-controls">
@@ -309,6 +335,11 @@ function SellerCurrentMonthDetailed({ salesData }) {
             id="cm-sort"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
+            style={{
+              background: "var(--color-card, #23273a)",
+              color: "var(--color-text-primary, #fff)",
+              border: "1px solid var(--color-brand-blue-light)"
+            }}
           >
             <option value="mrc">Total MRC (High to Low)</option>
             <option value="wireline">Wireline (High to Low)</option>
@@ -317,14 +348,14 @@ function SellerCurrentMonthDetailed({ salesData }) {
           </select>
         </div>
       </div>
-      <div className="table-container" tabIndex={0}>
+      <div className="table-container" tabIndex={0} style={{ maxHeight: 350, overflowY: "auto" }}>
         <table>
           <thead>
             <tr>
-              <th>Seller</th>
-              <th>Total MRC</th>
-              <th>Wireline</th>
-              <th>Wireless</th>
+              <th style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--color-card, #23273a)" }}>Seller</th>
+              <th style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--color-card, #23273a)" }}>Total MRC</th>
+              <th style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--color-card, #23273a)" }}>Wireline</th>
+              <th style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--color-card, #23273a)" }}>Wireless</th>
             </tr>
           </thead>
           <tbody>
@@ -373,26 +404,18 @@ function SellerCurrentMonthDetailed({ salesData }) {
             <h2>
               {selectedSeller} - {currentMonthYear} Detailed Sales
             </h2>
-            <div className="table-container" style={{ maxHeight: "300px" }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>MRC</th>
-                    <th>Type</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sellerSales.map((sale, i) => (
-                    <tr key={i}>
-                      <td>{formatCurrency(sale.MRC)}</td>
-                      <td>{sale.Type}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="account-info">
+              {sellerSales.map((sale, i) => (
+                <div className="utility-row" key={i}>
+                  <span className="row-label">MRC:</span>
+                  <span className="row-value">{formatCurrency(sale.MRC)}</span>
+                  <span className="row-label" style={{ marginLeft: 12 }}>Type:</span>
+                  <span className="row-value">{sale.Type}</span>
+                </div>
+              ))}
             </div>
             <button
-              className="refresh-btn refresh-btn--neutral"
+              className="refresh-btn refresh-btn--neutral w-100"
               onClick={closeModal}
               autoFocus
               ref={closeBtnRef}
@@ -466,9 +489,7 @@ function Rolling4Months({ salesData }) {
 
   // CSV Export Function
   const exportToCSV = () => {
-    // Header
     let csv = ["Seller", ...months, "4-Month Total"].join(",") + "\n";
-    // Data Rows
     aggregatedData.forEach((seller) => {
       const row = [
         `"${seller.Seller}"`,
@@ -477,13 +498,11 @@ function Rolling4Months({ salesData }) {
       ];
       csv += row.join(",") + "\n";
     });
-    // Grand Total Row
     csv += [
       `"Grand Total"`,
       ...months.map(m => grandTotals[m] != null ? grandTotals[m].toFixed(2) : "0.00"),
       grandTotals.TotalOverallMRC != null ? grandTotals.TotalOverallMRC.toFixed(2) : "0.00"
     ].join(",") + "\n";
-    // Download
     const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -512,6 +531,11 @@ function Rolling4Months({ salesData }) {
             value={sellerFilter}
             onChange={(e) => setSellerFilter(e.target.value)}
             placeholder="Type seller name..."
+            style={{
+              background: "var(--color-card, #23273a)",
+              color: "var(--color-text-primary, #fff)",
+              border: "1px solid var(--color-brand-blue-light)"
+            }}
           />
         </div>
         <div className="filter-controls">
@@ -520,6 +544,11 @@ function Rolling4Months({ salesData }) {
             id="r4-sort"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
+            style={{
+              background: "var(--color-card, #23273a)",
+              color: "var(--color-text-primary, #fff)",
+              border: "1px solid var(--color-brand-blue-light)"
+            }}
           >
             <option value="total">Overall Total (High to Low)</option>
             <option value="seller">Seller (A-Z)</option>
@@ -536,15 +565,15 @@ function Rolling4Months({ salesData }) {
           Export CSV
         </button>
       </div>
-      <div className="table-container">
+      <div className="table-container" style={{ maxHeight: 350, overflowY: "auto" }}>
         <table className="rolling-table">
           <thead>
             <tr>
-              <th style={{ textAlign: "left" }}>Seller</th>
+              <th style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--color-card, #23273a)" }}>Seller</th>
               {months.map(month => (
-                <th key={month}>{month}</th>
+                <th key={month} style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--color-card, #23273a)" }}>{month}</th>
               ))}
-              <th>4-Month Total</th>
+              <th style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--color-card, #23273a)" }}>4-Month Total</th>
             </tr>
           </thead>
           <tbody>

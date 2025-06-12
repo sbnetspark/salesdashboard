@@ -1,3 +1,4 @@
+// src/ExecutiveDashboard.js
 import React, { useEffect, useState, useMemo } from "react";
 import NavBar from "./NavBar";
 import { auth, db } from "./firebase";
@@ -107,7 +108,7 @@ function ExecutiveDashboard({ theme, setTheme }) {
     const wm = { wireline: 0, mobility: 0 };
 
     gaapRows
-      .filter((r) => r.Month?.includes("2025"))
+      .filter((r) => typeof r.Month === "string" && r.Month.includes("2025"))
       .forEach((r) => {
         const gaap   = Number(r.GAAP) || 0;
         const month  = r.Month;

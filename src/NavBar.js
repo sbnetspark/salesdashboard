@@ -1,21 +1,21 @@
-// src/NavBar.js
 import React, { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "./firebase";
 import { getUserRole, ROLES } from "./utils/getUserRole";
-import { SunIcon, MoonIcon } from "@heroicons/react/24/solid";
+import { SunIcon, MoonIcon, Bars3Icon, XMarkIcon } from "@heroicons/react/24/solid";
 import "./App.css";
 
 const NavBar = ({ user, theme, setTheme }) => {
   const location = useLocation();
   const role = getUserRole(user?.email);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [error, setError] = useState(null);
   const modalRef = useRef();
 
-  // Generate a display name from the email
+  // Display name logic
   const displayName = user?.email
     ? user.email
         .split("@")[0]
@@ -29,24 +29,38 @@ const NavBar = ({ user, theme, setTheme }) => {
       setError(null);
       await signOut(auth);
       setLogoutModalOpen(false);
+      setMobileMenuOpen(false);
     } catch (err) {
       setError("Failed to sign out. Please try again.");
       console.error("Logout error:", err);
     }
   };
 
-  // Close modal on Escape
+  // Accessibility: Escape closes modal
   useEffect(() => {
     if (logoutModalOpen && modalRef.current) modalRef.current.focus();
   }, [logoutModalOpen]);
 
   useEffect(() => {
     if (logoutModalOpen) {
-      const handler = (e) => { if (e.key === "Escape") setLogoutModalOpen(false); };
+      const handler = (e) => {
+        if (e.key === "Escape") setLogoutModalOpen(false);
+      };
       window.addEventListener("keydown", handler);
       return () => window.removeEventListener("keydown", handler);
     }
   }, [logoutModalOpen]);
+
+  // Accessibility: Escape closes mobile menu
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      const handler = (e) => {
+        if (e.key === "Escape") setMobileMenuOpen(false);
+      };
+      window.addEventListener("keydown", handler);
+      return () => window.removeEventListener("keydown", handler);
+    }
+  }, [mobileMenuOpen]);
 
   // Dashboard links (shown/hidden by role)
   const dashboardLinks = [
@@ -67,8 +81,11 @@ const NavBar = ({ user, theme, setTheme }) => {
     { to: "/account", label: "My Account", show: true, variant: "neutral" },
   ].filter((link) => link.show);
 
+  // Close mobile menu on nav
+  const handleNavClick = () => setMobileMenuOpen(false);
+
   return (
-    <header className="App-header">
+    <header className="App-header navbar-root">
       <div className="navbar-brand">
         <Link to="/" tabIndex={0} aria-label="Go to My Sales Dashboard" className="navbar-logo-link">
           <img src="/netspark-logo.png" alt="NetSpark Logo" className="navbar-logo" />
@@ -78,28 +95,28 @@ const NavBar = ({ user, theme, setTheme }) => {
           <p className="navbar-subtitle">Here's a summary of your sales performance...</p>
         </div>
       </div>
-      <div className="navbar-actions">
-        <nav className="topbar-nav" role="navigation" aria-label="Main navigation">
-          {dashboardLinks.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className={`refresh-btn refresh-btn--${link.variant}`}
-              aria-current={location.pathname === link.to ? "page" : undefined}
-            >
-              {link.label}
-            </Link>
-          ))}
-          <button
-            className="refresh-btn refresh-btn--danger"
-            onClick={() => setLogoutModalOpen(true)}
-            aria-label="Sign out"
-            title="Sign out"
-            type="button"
+
+      {/* --- Desktop Nav (hidden on mobile) --- */}
+      <nav className="topbar-nav desktop-nav" role="navigation" aria-label="Main navigation">
+        {dashboardLinks.map((link) => (
+          <Link
+            key={link.to}
+            to={link.to}
+            className={`refresh-btn refresh-btn--${link.variant}`}
+            aria-current={location.pathname === link.to ? "page" : undefined}
           >
-            Logout
-          </button>
-        </nav>
+            {link.label}
+          </Link>
+        ))}
+        <button
+          className="refresh-btn refresh-btn--danger"
+          onClick={() => setLogoutModalOpen(true)}
+          aria-label="Sign out"
+          title="Sign out"
+          type="button"
+        >
+          Logout
+        </button>
         <button
           className="refresh-btn refresh-btn--theme"
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -109,7 +126,87 @@ const NavBar = ({ user, theme, setTheme }) => {
         >
           {theme === "dark" ? <SunIcon className="icon" /> : <MoonIcon className="icon" />}
         </button>
-      </div>
+      </nav>
+
+      {/* --- Hamburger for Mobile --- */}
+      <button
+        className="navbar-hamburger mobile-nav"
+        aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+        aria-expanded={mobileMenuOpen}
+        aria-controls="mobile-menu"
+        onClick={() => setMobileMenuOpen((open) => !open)}
+        type="button"
+      >
+        {mobileMenuOpen ? <XMarkIcon className="icon" /> : <Bars3Icon className="icon" />}
+      </button>
+
+      {/* --- Mobile Slide-Out Menu --- */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            id="mobile-menu"
+            className="navbar-mobile-menu"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", stiffness: 350, damping: 35 }}
+            tabIndex={-1}
+            role="menu"
+            aria-label="Mobile navigation"
+          >
+            <div className="mobile-menu-header">
+              <img src="/netspark-logo.png" alt="NetSpark Logo" className="navbar-logo" />
+              <button
+                className="navbar-hamburger"
+                aria-label="Close menu"
+                onClick={() => setMobileMenuOpen(false)}
+                type="button"
+              >
+                <XMarkIcon className="icon" />
+              </button>
+            </div>
+            <div className="mobile-menu-links">
+              {dashboardLinks.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className={`refresh-btn mobile refresh-btn--${link.variant} ${
+                    location.pathname === link.to ? "active" : ""
+                  }`}
+                  onClick={handleNavClick}
+                  role="menuitem"
+                  tabIndex={0}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <button
+                className="refresh-btn mobile refresh-btn--danger"
+                onClick={() => {
+                  setLogoutModalOpen(true);
+                  setMobileMenuOpen(false);
+                }}
+                aria-label="Sign out"
+                type="button"
+              >
+                Logout
+              </button>
+              <button
+                className="refresh-btn mobile refresh-btn--theme"
+                onClick={() => {
+                  setTheme(theme === "dark" ? "light" : "dark");
+                  setMobileMenuOpen(false);
+                }}
+                aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                type="button"
+              >
+                {theme === "dark" ? <SunIcon className="icon" /> : <MoonIcon className="icon" />}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="toast-container" aria-live="polite">
         {error && (
           <div className="toast toast-error" tabIndex={0}>

@@ -57,14 +57,16 @@ function AppRouter({ user, theme, setTheme }) {
           <Route path="*" element={<Navigate to="/" replace />} />
         </>
       )}
-      {/* For users not recognized */}
+      {/* Fallback: Access denied page for unrecognized users */}
       <Route
         path="*"
         element={
           <main className="login-gate" role="main" aria-label="Access Denied">
             <div className="login-card" tabIndex={0}>
               <h2>Access Denied</h2>
-              <p className="error">You do not have access to this dashboard.<br />Contact IT for assistance.</p>
+              <p className="error" role="alert">
+                You do not have access to this dashboard.<br />Contact IT for assistance.
+              </p>
             </div>
           </main>
         }
@@ -144,8 +146,12 @@ function App() {
       <main className="login-gate" role="main" aria-label="Blocked - Email Domain">
         <div className="login-card" tabIndex={0}>
           <h2>Access Blocked</h2>
-          <p className="error">{emailDomainError}</p>
-          <button className="refresh-btn refresh-btn--danger" onClick={() => signOut(auth)} autoFocus>
+          <p className="error" role="alert">{emailDomainError}</p>
+          <button
+            className="refresh-btn refresh-btn--danger w-100"
+            onClick={() => signOut(auth)}
+            autoFocus
+          >
             Sign Out & Retry
           </button>
         </div>
