@@ -205,7 +205,6 @@ function ManagementDashboard({ theme, setTheme }) {
   /* metrics */
   useEffect(() => {
     if (!sales.length) return;
-    // FIX: Only keep rows where Month is a string
     const rows2025 = sales.filter((r) => typeof r.Month === "string" && r.Month.includes("2025"));
     const now      = new Date();
     const curMon   = `${MONTH_ORDER[now.getMonth()]} 2025`;
@@ -244,7 +243,7 @@ function ManagementDashboard({ theme, setTheme }) {
           <MetricCard title="MTD MRC" value={formatCurrency(mtd)} />
         </div>
 
-        {/* Monthly Trend: Now with wireline, wireless, and total (green line) */}
+        {/* Monthly Trend */}
         <div className="card chart-card fade-in" style={{ marginBottom: 32 }}>
           <h2 style={{ marginBottom: 6 }}>
             <ChartBarIcon className="icon" /> Monthly Trend (Wireline / Wireless / Total)
@@ -259,6 +258,7 @@ function ManagementDashboard({ theme, setTheme }) {
                   height={60}
                   tick={{ fill: "var(--color-text-primary)", fontWeight: 600, angle: -35, textAnchor: "end" }}
                   interval={0}
+                  tickFormatter={label => label.split(" ")[0]}
                 />
                 <YAxis
                   width={120}
@@ -414,14 +414,14 @@ function SortableQuotaPerformance({ data, monthlyQuotas, sortBy, onSortChange })
         }}
       />
       <p className="subdued">Monthly quota vs MRC (Upgrades = $15).</p>
-      <div className="table-container">
+      <div className="table-container" style={{ maxHeight: 350, overflowY: "auto" }}>
         <table>
           <thead>
             <tr>
-              <th>Representative</th>
-              <th>Monthly Quota</th>
-              <th>Current Month MRC</th>
-              <th>Progress</th>
+              <th style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--color-card, #23273a)" }}>Representative</th>
+              <th style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--color-card, #23273a)" }}>Monthly Quota</th>
+              <th style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--color-card, #23273a)" }}>Current Month MRC</th>
+              <th style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--color-card, #23273a)" }}>Progress</th>
             </tr>
           </thead>
           <tbody>
@@ -479,16 +479,16 @@ function StackRankYTD({ allMonthRanks, sortMonth, onSortMonthChange, sellerYTDTo
         groups={{ Months: [{ value: "", label: "(YTD)" }, ...months.map((m) => ({ value: m, label: m }))] }}
       />
       <p className="subdued">Default sort = YTD rank. Select a month to reorder.</p>
-      <div className="table-container">
+      <div className="table-container" style={{ maxHeight: 350, overflowY: "auto" }}>
         <table>
           <thead>
             <tr>
-              <th>YTD Rank</th>
-              <th>Seller</th>
+              <th style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--color-card, #23273a)" }}>YTD Rank</th>
+              <th style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--color-card, #23273a)" }}>Seller</th>
               {months.map((m) => (
-                <th key={m}>{m}</th>
+                <th key={m} style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--color-card, #23273a)" }}>{m}</th>
               ))}
-              <th>YTD MRC</th>
+              <th style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--color-card, #23273a)" }}>YTD MRC</th>
             </tr>
           </thead>
           <tbody>
@@ -528,6 +528,7 @@ function QuotaAttainmentChart({ data, monthlyQuotas }) {
   const reps = monthlyQuotas.map((r) => r.Representative).sort();
   const [sel, setSel] = useState(reps[0] ?? "");
 
+  // Always build data with all months present
   const chartData = months.map((m) => {
     const quota = monthlyQuotas.find((r) => r.Representative === sel)?.Quota ?? 0;
     const rows  = data.filter(
@@ -556,13 +557,16 @@ function QuotaAttainmentChart({ data, monthlyQuotas }) {
         <span style={{ color: BRAND_ORANGE }}>Orange 50–99%</span>,{" "}
         <span style={{ color: BRAND_GREEN }}>Green ≥100%</span>.
       </p>
-      <div style={{ width: "100%", height: 420 }}>
-        <ResponsiveContainer>
+      {/* Chart always wide enough to fit all months/labels */}
+      <div style={{ width: "100%", minWidth: 1100, height: 420 }}>
+        <ResponsiveContainer width="100%" height={420}>
           <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 10 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey="month"
               height={60}
+              interval={0}
+              tickFormatter={label => label.split(" ")[0]}
               tick={{ fill: "var(--color-text-primary)", fontWeight: 600, angle: -35, textAnchor: "end" }}
             />
             <YAxis
@@ -609,7 +613,8 @@ function HeaderSelect({ title, id, label, value, onChange, groups }) {
           onChange={(e) => onChange(e.target.value)}
           style={{
             color: "var(--color-text-primary)",
-            backgroundColor: "var(--color-bg-card)",
+            backgroundColor: "var(--color-card, #23273a)",
+            border: "1px solid var(--color-brand-blue-light)"
           }}
         >
           {Object.entries(groups).map(([grp, opts]) => (

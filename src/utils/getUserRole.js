@@ -25,6 +25,7 @@ const EXECUTIVE_EMAILS = [
   "sam.bonomo@netsparktelecom.com",
   "micah.cooksey@netsparktelecom.com",
   "scott.mitchell@netsparktelecom.com",
+  "dustin.frank@netsparktelecom.com",
   "chris.carn@netsparktelecom.com",
 ];
 

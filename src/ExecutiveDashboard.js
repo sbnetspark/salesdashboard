@@ -27,7 +27,7 @@ const MONTH_ORDER = [
 ];
 const BRAND_BLUE   = "var(--color-brand-blue-light)";
 const BRAND_ORANGE = "var(--color-brand-orange)";
-const BRAND_GREEN  = "var(--color-brand-green, #4caf50)";
+const BRAND_GREEN  = "var(--color-success)";
 const isDarkMode = () =>
   typeof window !== "undefined" &&
   (document.documentElement.classList.contains("dark") ||
@@ -127,24 +127,16 @@ function ExecutiveDashboard({ theme, setTheme }) {
         }
       });
 
-    /* build array in order */
+    // Always show all months (even if zero)
     const fullTrend = months.map((m) => {
       const { wireline = 0, mobility = 0 } = monthlyAgg[m] || {};
       return { month: m, wireline, mobility, total: wireline + mobility };
     });
 
-    /* ===== NEW: trim leading/trailing zero‑only months ===== */
-    const firstIdx = fullTrend.findIndex((t) => t.total > 0);
-    const lastIdx  = fullTrend.map((t) => t.total).lastIndexOf(
-      fullTrend.slice().reverse().find((t) => t.total > 0)?.total ?? 0
-    );
-    const trimmedTrend =
-      firstIdx === -1 ? [] : fullTrend.slice(firstIdx, lastIdx + 1);
-
     return {
       ytdGAAP: ytd,
       mtdGAAP: mtd,
-      monthlyTrend: trimmedTrend,
+      monthlyTrend: fullTrend,
       wireMobBreakdown: [
         { name: "Wireline", value: wm.wireline },
         { name: "Mobility", value: wm.mobility },
@@ -189,13 +181,15 @@ function ExecutiveDashboard({ theme, setTheme }) {
         {/* Monthly Trend */}
         <div className="card chart-card fade-in">
           <h2>Monthly GAAP Trend (Wireline / Mobility / Total)</h2>
-          <div style={{ width: "100%", height: 330 }}>
-            <ResponsiveContainer>
+          <div style={{ width: "100%", minWidth: 1100, height: 330 }}>
+            <ResponsiveContainer width="100%" height={330}>
               <AreaChart data={monthlyTrend} margin={{ top: 10, right: 25, bottom: 0, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
                 <XAxis
                   dataKey="month"
                   height={60}
+                  interval={0}
+                  tickFormatter={label => label.split(" ")[0]}
                   tick={{
                     fill: "var(--color-text-primary)",
                     fontWeight: 600,
@@ -256,7 +250,6 @@ function ExecutiveDashboard({ theme, setTheme }) {
                   dataKey="value"
                   nameKey="name"
                   outerRadius={100}
-                  /* label disabled to remove clipped text */
                   labelLine={false}
                 >
                   <Cell fill={BRAND_ORANGE} />
